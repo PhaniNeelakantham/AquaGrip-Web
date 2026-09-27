@@ -1,0 +1,41 @@
+/* Design tokens -- from the dataviz skill's reference palette (references/palette.md).
+   Light is the default; dark overrides via prefers-color-scheme. */
+:root {
+  color-scheme: light;
+
+  --page-plane: #f9f9f7;
+  --surface-1: #fcfcfb;
+  --card-border: rgba(11, 11, 11, 0.1);
+
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+
+  --series-1: #2a78d6; /* primary accent + chart line */
+  --delta-good: #006300;
+  --delta-bad: #d03b3b; /* status.critical */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --page-plane: #0d0d0d;
+    --surface-1: #1a1a19;
+    --card-border: rgba(255, 255, 255, 0.1);
+
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+
+    --series-1: #3987e5;
+    --delta-good: #0ca30c;
+    --delta-bad: #e66767;
+  }
+}
