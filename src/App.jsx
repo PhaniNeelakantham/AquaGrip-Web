@@ -1,54 +1,37 @@
 import { useState } from "react";
+import { useAquaGripSensor } from "./ble/useAquaGripSensor";
+import BottomNav from "./components/BottomNav";
+import Home from "./screens/Home";
 import GameMenu from "./screens/GameMenu";
 import ProgressTracker from "./screens/ProgressTracker";
 
-const TABS = [
-  { id: "games", label: "Games", icon: "🎮" },
-  { id: "progress", label: "Progress", icon: "📈" },
-];
-
 function App() {
-  const [tab, setTab] = useState("games");
+  const [tab, setTab] = useState("home");
+  const [demoMode, setDemoMode] = useState(true);
+  const sensor = useAquaGripSensor({ mock: demoMode });
+
+  const navigate = (next) => {
+    setTab(next);
+    window.scrollTo({ top: 0 });
+  };
+
+  const changeDemoMode = (next) => {
+    sensor.disconnect();
+    setDemoMode(next);
+  };
 
   return (
     <>
-      {tab === "games" ? <GameMenu /> : <ProgressTracker />}
-
-      <nav
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "100%",
-          maxWidth: 430,
-          display: "flex",
-          borderTop: "1px solid var(--card-border)",
-          background: "var(--surface-1)",
-        }}
-      >
-        {TABS.map((t) => {
-          const active = t.id === tab;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              style={{
-                flex: 1,
-                border: "none",
-                background: "none",
-                padding: "10px 0 14px",
-                cursor: "pointer",
-                color: active ? "var(--series-1)" : "var(--text-muted)",
-                fontWeight: active ? 600 : 400,
-              }}
-            >
-              <div style={{ fontSize: 20 }}>{t.icon}</div>
-              <div style={{ fontSize: 12 }}>{t.label}</div>
-            </button>
-          );
-        })}
-      </nav>
+      <main key={tab} className="screen">
+        {tab === "home" && (
+          <Home onNavigate={navigate} connectionState={sensor.connectionState} demoMode={demoMode} />
+        )}
+        {tab === "games" && (
+          <GameMenu sensor={sensor} demoMode={demoMode} onDemoModeChange={changeDemoMode} />
+        )}
+        {tab === "progress" && <ProgressTracker />}
+      </main>
+      <BottomNav tab={tab} onChange={navigate} />
     </>
   );
 }

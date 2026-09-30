@@ -1,41 +1,110 @@
-/* Design tokens -- from the dataviz skill's reference palette (references/palette.md).
-   Light is the default; dark overrides via prefers-color-scheme. */
+/* AquaGrip design tokens. Light is the default; dark overrides follow.
+   Chart teal was checked with the dataviz skill's palette validator
+   against each mode's surface. */
 :root {
   color-scheme: light;
+  --font: "Plus Jakarta Sans Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --page-plane: #f9f9f7;
-  --surface-1: #fcfcfb;
-  --card-border: rgba(11, 11, 11, 0.1);
+  --bg: #f3f5fa;
+  --surface: #ffffff;
+  --surface-2: #f4f5fa;
+  --border: rgba(20, 23, 43, 0.07);
+  --shadow: 0 1px 2px rgba(20, 23, 43, 0.04), 0 8px 24px rgba(20, 23, 43, 0.06);
+  --shadow-lift: 0 14px 34px rgba(20, 23, 43, 0.12);
 
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #898781;
+  --ink: #14172b;
+  --ink-2: #545a75;
+  --ink-3: #7f849e;
 
-  --gridline: #e1e0d9;
-  --baseline: #c3c2b7;
+  --primary: #1f2a6b;
+  --on-primary: #ffffff;
+  --primary-text: #2f3fa3;
+  --focus: #5b6cf0;
 
-  --series-1: #2a78d6; /* primary accent + chart line */
-  --delta-good: #006300;
-  --delta-bad: #d03b3b; /* status.critical */
+  --hero-from: #1f2a6b;
+  --hero-to: #3445b4;
+  --on-hero-2: rgba(255, 255, 255, 0.78);
+
+  --teal: #009488;
+  --on-teal: #ffffff;
+  --teal-bright: #5eead4;
+
+  --tile-games-from: #12b3a5;
+  --tile-games-to: #0a7f8c;
+  --tile-progress-from: #7a67f0;
+  --tile-progress-to: #4f3fcf;
+
+  --tint-lavender: #eeeaff;
+  --icon-lavender: #5543d6;
+  --tint-mint: #dcf6ec;
+  --icon-mint: #0a7a50;
+  --tint-peach: #ffeadf;
+  --icon-peach: #b8511f;
+  --tint-sky: #e1efff;
+  --icon-sky: #1f5fb8;
+  --tint-butter: #fff3cf;
+  --icon-butter: #8f5f00;
+
+  --good: #0b7a3e;
+  --good-bg: #ddf6e7;
+  --bad: #b8431f;
+  --bad-bg: #ffe8de;
+
+  --gridline: #e7e9f1;
+  --axis: #c9ccda;
+
+  --desk-base: #ebe8fb;
+  --desk-a: #cfe7ff;
+  --desk-b: #d5f4ec;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    --page-plane: #0d0d0d;
-    --surface-1: #1a1a19;
-    --card-border: rgba(255, 255, 255, 0.1);
+    --bg: #0d0f1c;
+    --surface: #171a2c;
+    --surface-2: #20243a;
+    --border: rgba(255, 255, 255, 0.07);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
+    --shadow-lift: 0 14px 34px rgba(0, 0, 0, 0.45);
 
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
+    --ink: #f3f4fa;
+    --ink-2: #b9bcd1;
+    --ink-3: #8b8fa8;
 
-    --gridline: #2c2c2a;
-    --baseline: #383835;
+    --primary: #5563e8;
+    --on-primary: #ffffff;
+    --primary-text: #9aa5ff;
+    --focus: #9aa5ff;
 
-    --series-1: #3987e5;
-    --delta-good: #0ca30c;
-    --delta-bad: #e66767;
+    --hero-from: #232e78;
+    --hero-to: #3a4bc0;
+
+    --teal: #11a39a;
+    --on-teal: #ffffff;
+
+    --tint-lavender: #262249;
+    --icon-lavender: #b3a8ff;
+    --tint-mint: #15332b;
+    --icon-mint: #62d6a6;
+    --tint-peach: #3a2519;
+    --icon-peach: #ff9f6e;
+    --tint-sky: #172a45;
+    --icon-sky: #82b6ff;
+    --tint-butter: #372e12;
+    --icon-butter: #f0c24d;
+
+    --good: #5bd98b;
+    --good-bg: rgba(91, 217, 139, 0.14);
+    --bad: #ff9a7a;
+    --bad-bg: rgba(255, 154, 122, 0.14);
+
+    --gridline: #262a40;
+    --axis: #3a3f58;
+
+    --desk-base: #0a0b16;
+    --desk-a: #1a1f48;
+    --desk-b: #0f2e2c;
   }
 }

@@ -1,133 +1,137 @@
 import { useMemo, useState } from "react";
+import { CalendarCheck, Hand, Info, Repeat, RotateCw, Sparkles } from "lucide-react";
 import { mockSessions } from "../data/mockSessions";
 import {
   RANGE_OPTIONS,
   baselineForRange,
-  summarize,
-  percentChange,
   improvementScore,
+  percentChange,
+  summarize,
 } from "../data/scoring";
-import StatTile from "../components/StatTile";
+import { comparisonLabel, friendlyDate, scoreBand } from "../data/insights";
 import LineChart from "../components/LineChart";
+import ScoreRing from "../components/ScoreRing";
+import StatTile from "../components/StatTile";
 
 export default function ProgressTracker() {
   const [rangeId, setRangeId] = useState("30d");
   const range = RANGE_OPTIONS.find((r) => r.id === rangeId);
 
-  const { current, baseline, currentSummary, baselineSummary, score } = useMemo(() => {
+  const data = useMemo(() => {
     const { current, baseline } = baselineForRange(mockSessions, range.days);
-    const currentSummary = summarize(current);
-    const baselineSummary = summarize(baseline);
-    return {
-      current,
-      baseline,
-      currentSummary,
-      baselineSummary,
-      score: improvementScore(currentSummary, baselineSummary),
-    };
+    const now = summarize(current);
+    const before = summarize(baseline);
+    return { current, now, before, score: improvementScore(now, before) };
   }, [range.days]);
 
-  const chartPoints = current.map((s) => ({
-    id: s.id,
-    timestamp: s.timestamp,
-    value: s.avgForcePsi,
-  }));
+  const band = scoreBand(data.score);
+  const compare = comparisonLabel(range);
+  const recent = data.current.slice(-4).reverse();
 
   return (
-    <div style={{ padding: "16px 16px 88px" }}>
-      <h1 style={{ fontSize: 24, margin: "8px 0 16px" }}>Progress</h1>
+    <>
+      <header className="screen-header">
+        <div className="eyebrow">Progress</div>
+        <h1 className="title">How you're doing</h1>
+      </header>
 
-      {/* Filters: one row, above the charts, date range first. */}
-      <div
-        role="group"
-        aria-label="Time range"
-        style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}
-      >
-        {RANGE_OPTIONS.map((opt) => {
-          const active = opt.id === rangeId;
-          return (
-            <button
-              key={opt.id}
-              onClick={() => setRangeId(opt.id)}
-              aria-pressed={active}
-              style={{
-                border: "1px solid var(--card-border)",
-                borderRadius: 999,
-                padding: "6px 12px",
-                fontSize: 13,
-                background: active ? "var(--series-1)" : "var(--surface-1)",
-                color: active ? "#fff" : "var(--text-secondary)",
-                cursor: "pointer",
-              }}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+      <div className="segmented" role="group" aria-label="Time range">
+        {RANGE_OPTIONS.map((opt) => (
+          <button key={opt.id} aria-pressed={opt.id === rangeId} onClick={() => setRangeId(opt.id)}>
+            {opt.label}
+          </button>
+        ))}
       </div>
 
-      {/* Hero figure: the one number this screen leads with. */}
-      <div
-        style={{
-          background: "var(--surface-1)",
-          border: "1px solid var(--card-border)",
-          borderRadius: 16,
-          padding: 20,
-          marginBottom: 16,
-          textAlign: "center",
-        }}
-      >
-        <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>Improvement score</div>
-        <div style={{ fontSize: 56, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.1 }}>
-          {score === null ? "—" : score}
-          <span style={{ fontSize: 20, color: "var(--text-muted)" }}>/100</span>
+      <section className="card" style={{ marginTop: 16 }} aria-label="Improvement score">
+        <div className="score-row">
+          <ScoreRing value={data.score ?? 0}>
+            <div className="ring-value">{data.score ?? "–"}</div>
+            <div className="ring-sub">out of 100</div>
+          </ScoreRing>
+          <div className="score-text">
+            <span className={`pill pill--${band.tone}`}>
+              <Sparkles size={15} aria-hidden="true" /> {band.label}
+            </span>
+            <p className="score-message">{band.message}</p>
+          </div>
         </div>
-        <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-          {score === null
-            ? "Not enough history yet to compare"
-            : "vs the period before this one"}
-        </div>
-      </div>
+        <details className="explain">
+          <summary>
+            <Info size={16} aria-hidden="true" /> How is this score worked out?
+          </summary>
+          <p>
+            We compare this period with the one before it. A stronger grip, more squeezes, and a wider wrist turn
+            all raise your score. A score of 50 means about the same as before.
+          </p>
+        </details>
+      </section>
 
-      <div
-        style={{
-          background: "var(--surface-1)",
-          border: "1px solid var(--card-border)",
-          borderRadius: 16,
-          padding: 16,
-          marginBottom: 16,
-        }}
-      >
-        <div style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 8 }}>
-          Average grip force per session (psi)
-        </div>
-        <LineChart points={chartPoints} valueLabel="Avg force (psi)" />
-      </div>
+      <h2 className="section-title">Grip strength over time</h2>
+      <section className="card">
+        <p className="card-sub">Your average squeeze in each session</p>
+        <LineChart
+          points={data.current.map((s) => ({ id: s.id, timestamp: s.timestamp, value: s.avgForcePsi }))}
+          valueLabel="Average squeeze"
+          unit="psi"
+        />
+      </section>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-          gap: 10,
-        }}
-      >
+      <h2 className="section-title">
+        At a glance
+        <span className="section-note">{compare}</span>
+      </h2>
+      <div className="stats">
         <StatTile
-          label="Avg peak force"
-          value={`${currentSummary.avgPeakForce.toFixed(1)} psi`}
-          delta={percentChange(currentSummary.avgPeakForce, baselineSummary.avgPeakForce)}
+          icon={Hand}
+          tint="sky"
+          label="Grip strength"
+          value={data.now.avgPeakForce.toFixed(1)}
+          unit="psi"
+          delta={percentChange(data.now.avgPeakForce, data.before.avgPeakForce)}
         />
         <StatTile
-          label="Avg reps / session"
-          value={currentSummary.avgReps.toFixed(1)}
-          delta={percentChange(currentSummary.avgReps, baselineSummary.avgReps)}
+          icon={Repeat}
+          tint="mint"
+          label="Squeezes per session"
+          value={Math.round(data.now.avgReps)}
+          delta={percentChange(data.now.avgReps, data.before.avgReps)}
         />
         <StatTile
-          label="Avg rotation range"
-          value={`${currentSummary.avgRotationRange.toFixed(0)}°`}
-          delta={percentChange(currentSummary.avgRotationRange, baselineSummary.avgRotationRange)}
+          icon={RotateCw}
+          tint="lavender"
+          label="Wrist motion"
+          value={Math.round(data.now.avgRotationRange)}
+          unit="°"
+          delta={percentChange(data.now.avgRotationRange, data.before.avgRotationRange)}
         />
-        <StatTile label="Sessions" value={currentSummary.count} />
+        <StatTile icon={CalendarCheck} tint="peach" label="Sessions" value={data.now.count} />
       </div>
-    </div>
+
+      {recent.length > 0 && (
+        <>
+          <h2 className="section-title">Recent sessions</h2>
+          <section className="card" style={{ paddingBlock: 8 }}>
+            {recent.map((s) => (
+              <div key={s.id} className="list-row tint-sky">
+                <div className="list-icon">
+                  <Hand size={20} aria-hidden="true" />
+                </div>
+                <div className="list-main">
+                  <div className="list-title">{friendlyDate(s.timestamp)}</div>
+                  <div className="list-sub">
+                    {s.reps} squeezes · {Math.round(s.durationS / 60) || 1} min
+                  </div>
+                </div>
+                <div className="list-value">
+                  {s.peakForcePsi.toFixed(1)}
+                  <small>best psi</small>
+                </div>
+              </div>
+            ))}
+          </section>
+        </>
+      )}
+    </>
   );
 }

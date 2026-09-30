@@ -1,82 +1,44 @@
-import { useState } from "react";
-import { useAquaGripSensor } from "../ble/useAquaGripSensor";
+import { Clock, Hand } from "lucide-react";
+import { GAMES } from "../data/games";
+import DevicePanel from "../components/DevicePanel";
 
-const PLACEHOLDER_GAMES = [
-  { name: "Squeeze Pop", desc: "Grip force pops bubbles" },
-  { name: "Tilt Maze", desc: "Wrist rotation steers a ball" },
-  { name: "Hold Steady", desc: "Endurance: keep force in a target band" },
-];
-
-export default function GameMenu() {
-  const [mock, setMock] = useState(true);
-  const { connectionState, reading, status, error, connect, disconnect } =
-    useAquaGripSensor({ mock });
-
+export default function GameMenu({ sensor, demoMode, onDemoModeChange }) {
   return (
-    <div style={{ padding: "16px 16px 88px" }}>
-      <h1 style={{ fontSize: 24, margin: "8px 0 16px" }}>Games</h1>
+    <>
+      <header className="screen-header">
+        <div className="eyebrow">Games</div>
+        <h1 className="title">Play &amp; practice</h1>
+        <p className="subtitle">Short, fun exercises for your hand and wrist.</p>
+      </header>
 
-      <div
-        style={{
-          background: "var(--surface-1)",
-          border: "1px solid var(--card-border)",
-          borderRadius: 16,
-          padding: 16,
-          marginBottom: 20,
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
-              {connectionState === "connected" ? "Connected" : "Not connected"}
-              {status ? ` (${status})` : ""}
+      <DevicePanel sensor={sensor} demoMode={demoMode} onDemoModeChange={onDemoModeChange} />
+
+      <h2 className="section-title">
+        All games
+        <span className="section-note">{GAMES.length} games</span>
+      </h2>
+      <div className="games">
+        {GAMES.map(({ id, name, desc, trains, minutes, tint, icon: Icon }) => (
+          <article key={id} className={`game-card tint-${tint}`} aria-disabled="true">
+            <div className="game-art">
+              <Icon size={34} strokeWidth={2} aria-hidden="true" />
             </div>
-            <label style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-              <input
-                type="checkbox"
-                checked={mock}
-                onChange={(e) => {
-                  disconnect();
-                  setMock(e.target.checked);
-                }}
-              />{" "}
-              Use fake data (no hardware needed)
-            </label>
-          </div>
-          {connectionState === "connected" ? (
-            <button onClick={disconnect}>Disconnect</button>
-          ) : (
-            <button onClick={connect} disabled={connectionState === "connecting"}>
-              {mock ? "Start Mock" : "Connect"}
-            </button>
-          )}
-        </div>
-        {error && <p style={{ color: "var(--delta-bad)", fontSize: 13 }}>{error}</p>}
-        {connectionState === "connected" && (
-          <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 8 }}>
-            Force {reading.forcePsi.toFixed(2)} psi · qw {reading.qw.toFixed(2)} · qy {reading.qy.toFixed(2)}
-          </div>
-        )}
-      </div>
-
-      <div style={{ display: "grid", gap: 10 }}>
-        {PLACEHOLDER_GAMES.map((g) => (
-          <div
-            key={g.name}
-            style={{
-              background: "var(--surface-1)",
-              border: "1px solid var(--card-border)",
-              borderRadius: 12,
-              padding: 14,
-              opacity: 0.6,
-            }}
-          >
-            <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{g.name}</div>
-            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{g.desc}</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>Coming soon</div>
-          </div>
+            <div className="game-body">
+              <h3 className="game-name">{name}</h3>
+              <p className="game-desc">{desc}</p>
+              <div className="game-meta">
+                <span className="chip">
+                  <Hand size={14} aria-hidden="true" /> {trains}
+                </span>
+                <span className="chip">
+                  <Clock size={14} aria-hidden="true" /> {minutes} min
+                </span>
+                <span className="soon">Coming soon</span>
+              </div>
+            </div>
+          </article>
         ))}
       </div>
-    </div>
+    </>
   );
 }

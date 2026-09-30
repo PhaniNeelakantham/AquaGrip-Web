@@ -1,172 +1,202 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-const VIEW_W = 600;
-const VIEW_H = 220;
-const PAD = { top: 16, right: 16, bottom: 24, left: 40 };
+const HEIGHT = 200;
+const PAD = { top: 22, right: 14, bottom: 30, left: 34 };
 
-function niceTicks(min, max, count = 4) {
-  if (min === max) return [min];
-  const step = (max - min) / (count - 1);
-  return Array.from({ length: count }, (_, i) => min + step * i);
+function useElementWidth(ref) {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return width;
 }
 
-// Single-series trend line: 2px line, 8px end marker with a surface ring,
-// direct end-label, hairline gridlines, crosshair + tooltip on hover, and
-// a table-view toggle so every value is reachable without hovering.
-export default function LineChart({ points, valueLabel, valueFormat = (v) => v.toFixed(1) }) {
-  const svgRef = useRef(null);
+const shortDate = (t) => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+// Single-series trend (dataviz skill specs): 2px line, ~10% area wash,
+// 8px end dot with a surface ring, sparse direct label, hairline grid,
+// crosshair + tooltip on hover/arrow keys, and a table fallback.
+export default function LineChart({ points, valueLabel, unit = "", valueFormat = (v) => v.toFixed(1) }) {
+  const wrapRef = useRef(null);
+  const width = useElementWidth(wrapRef);
+  const gradientId = useId();
   const [hoverIndex, setHoverIndex] = useState(null);
   const [showTable, setShowTable] = useState(false);
 
-  const { path, scaledPoints, yTicks, minY, maxY } = useMemo(() => {
-    if (points.length === 0) {
-      return { path: "", scaledPoints: [], yTicks: [], minY: 0, maxY: 0 };
-    }
+  const geo = useMemo(() => {
+    if (points.length === 0 || width === 0) return null;
     const values = points.map((p) => p.value);
     const times = points.map((p) => p.timestamp);
     const rawMin = Math.min(...values);
     const rawMax = Math.max(...values);
     const spread = rawMax - rawMin || 1;
-    const minY = Math.max(0, rawMin - spread * 0.15);
-    const maxY = rawMax + spread * 0.15;
+    const minY = Math.max(0, rawMin - spread * 0.2);
+    const maxY = rawMax + spread * 0.2;
     const minT = Math.min(...times);
-    const maxT = Math.max(...times);
-    const spreadT = maxT - minT || 1;
+    const spreadT = Math.max(...times) - minT || 1;
 
-    const innerW = VIEW_W - PAD.left - PAD.right;
-    const innerH = VIEW_H - PAD.top - PAD.bottom;
+    const innerW = width - PAD.left - PAD.right;
+    const innerH = HEIGHT - PAD.top - PAD.bottom;
+    const baseY = PAD.top + innerH;
+    const toY = (v) => PAD.top + innerH - ((v - minY) / (maxY - minY)) * innerH;
 
-    const scaledPoints = points.map((p) => ({
+    const scaled = points.map((p) => ({
       ...p,
-      x: PAD.left + ((p.timestamp - minT) / spreadT) * innerW,
-      y: PAD.top + innerH - ((p.value - minY) / (maxY - minY)) * innerH,
+      x: points.length === 1 ? PAD.left + innerW / 2 : PAD.left + ((p.timestamp - minT) / spreadT) * innerW,
+      y: toY(p.value),
     }));
 
-    const path = scaledPoints.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-
-    return { path, scaledPoints, yTicks: niceTicks(minY, maxY), minY, maxY };
-  }, [points]);
-
-  const handlePointerMove = (e) => {
-    if (scaledPoints.length === 0) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const localX = ((e.clientX - rect.left) / rect.width) * VIEW_W;
-    let nearest = 0;
-    let bestDist = Infinity;
-    scaledPoints.forEach((p, i) => {
-      const d = Math.abs(p.x - localX);
-      if (d < bestDist) {
-        bestDist = d;
-        nearest = i;
-      }
+    const line = scaled.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+    const area = `${line} L${scaled[scaled.length - 1].x},${baseY} L${scaled[0].x},${baseY} Z`;
+    const ticks = [0, 0.5, 1].map((f) => {
+      const v = minY + (maxY - minY) * f;
+      return { v, y: toY(v) };
     });
-    setHoverIndex(nearest);
+
+    return { scaled, line, area, ticks, baseY };
+  }, [points, width]);
+
+  const pickNearest = (clientX) => {
+    const rect = wrapRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    let best = 0;
+    geo.scaled.forEach((p, i) => {
+      if (Math.abs(p.x - x) < Math.abs(geo.scaled[best].x - x)) best = i;
+    });
+    setHoverIndex(best);
   };
 
-  if (points.length === 0) {
-    return <p style={{ color: "var(--text-secondary)" }}>No sessions in this range yet.</p>;
-  }
+  const handleKeyDown = (e) => {
+    if (!geo) return;
+    const last = geo.scaled.length - 1;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setHoverIndex((i) => Math.max(0, (i ?? last) - 1));
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setHoverIndex((i) => Math.min(last, (i ?? last) + 1));
+    }
+  };
 
-  const last = scaledPoints[scaledPoints.length - 1];
-  const hovered = hoverIndex !== null ? scaledPoints[hoverIndex] : null;
+  const last = geo?.scaled[geo.scaled.length - 1];
+  const hovered = geo && hoverIndex !== null ? geo.scaled[hoverIndex] : null;
+  const tooltipLeft = hovered ? Math.min(Math.max(hovered.x, 56), width - 56) : 0;
 
   return (
     <div>
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-        style={{ width: "100%", height: "auto", touchAction: "none" }}
-        onPointerMove={handlePointerMove}
-        onPointerLeave={() => setHoverIndex(null)}
-        role="img"
-        aria-label={`${valueLabel} trend over the selected period`}
-      >
-        {yTicks.map((t, i) => {
-          const y = PAD.top + (VIEW_H - PAD.top - PAD.bottom) * (1 - (t - minY) / (maxY - minY || 1));
-          return (
-            <g key={i}>
-              <line
-                x1={PAD.left}
-                x2={VIEW_W - PAD.right}
-                y1={y}
-                y2={y}
-                stroke="var(--gridline)"
-                strokeWidth={1}
-              />
-              <text x={PAD.left - 8} y={y + 4} textAnchor="end" fontSize={11} fill="var(--text-muted)">
-                {valueFormat(t)}
-              </text>
-            </g>
-          );
-        })}
+      <div className="chart" ref={wrapRef}>
+        {points.length === 0 && <p className="card-sub">No sessions in this time range yet.</p>}
+        {geo && (
+          <svg
+            width={width}
+            height={HEIGHT}
+            tabIndex={0}
+            role="img"
+            aria-label={`${valueLabel} over time. Use left and right arrow keys to step through sessions.`}
+            style={{ touchAction: "pan-y" }}
+            onPointerMove={(e) => pickNearest(e.clientX)}
+            onPointerDown={(e) => pickNearest(e.clientX)}
+            onPointerLeave={() => setHoverIndex(null)}
+            onFocus={() => setHoverIndex(geo.scaled.length - 1)}
+            onBlur={() => setHoverIndex(null)}
+            onKeyDown={handleKeyDown}
+          >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--teal)" stopOpacity="0.16" />
+                <stop offset="100%" stopColor="var(--teal)" stopOpacity="0.01" />
+              </linearGradient>
+            </defs>
 
-        <path d={path} fill="none" stroke="var(--series-1)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            {geo.ticks.map((t, i) => (
+              <g key={i}>
+                <line x1={PAD.left} x2={width - PAD.right} y1={t.y} y2={t.y} stroke="var(--gridline)" strokeWidth={1} />
+                <text x={PAD.left - 8} y={t.y + 4} textAnchor="end" fontSize={12} fill="var(--ink-3)">
+                  {valueFormat(t.v)}
+                </text>
+              </g>
+            ))}
 
-        {/* end marker: 8px dot with a 2px surface ring */}
-        <circle cx={last.x} cy={last.y} r={6} fill="var(--surface-1)" />
-        <circle cx={last.x} cy={last.y} r={4} fill="var(--series-1)" />
-        <text x={last.x} y={last.y - 12} textAnchor="end" fontSize={12} fontWeight={600} fill="var(--text-primary)">
-          {valueFormat(last.value)}
-        </text>
+            <path d={geo.area} fill={`url(#${gradientId})`} />
+            <path
+              d={geo.line}
+              fill="none"
+              stroke="var(--teal)"
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+
+            <text x={PAD.left} y={HEIGHT - 8} fontSize={12} fill="var(--ink-3)">
+              {shortDate(geo.scaled[0].timestamp)}
+            </text>
+            <text x={width - PAD.right} y={HEIGHT - 8} textAnchor="end" fontSize={12} fill="var(--ink-3)">
+              {shortDate(last.timestamp)}
+            </text>
+
+            {hovered ? (
+              <>
+                <line x1={hovered.x} x2={hovered.x} y1={PAD.top} y2={geo.baseY} stroke="var(--axis)" strokeWidth={1} />
+                <circle cx={hovered.x} cy={hovered.y} r={6} fill="var(--surface)" />
+                <circle cx={hovered.x} cy={hovered.y} r={4} fill="var(--teal)" />
+              </>
+            ) : (
+              <>
+                <circle cx={last.x} cy={last.y} r={6} fill="var(--surface)" />
+                <circle cx={last.x} cy={last.y} r={4} fill="var(--teal)" />
+                <text
+                  x={last.x}
+                  y={last.y - 12}
+                  textAnchor="end"
+                  fontSize={13}
+                  fontWeight={700}
+                  fill="var(--ink)"
+                  stroke="var(--surface)"
+                  strokeWidth={4}
+                  paintOrder="stroke"
+                >
+                  {valueFormat(last.value)}
+                </text>
+              </>
+            )}
+          </svg>
+        )}
 
         {hovered && (
-          <>
-            <line
-              x1={hovered.x}
-              x2={hovered.x}
-              y1={PAD.top}
-              y2={VIEW_H - PAD.bottom}
-              stroke="var(--baseline)"
-              strokeWidth={1}
-            />
-            <circle cx={hovered.x} cy={hovered.y} r={6} fill="var(--surface-1)" />
-            <circle cx={hovered.x} cy={hovered.y} r={4} fill="var(--series-1)" />
-          </>
+          <div className="chart-tooltip" style={{ left: tooltipLeft, top: hovered.y - 12 }}>
+            <strong>
+              {valueFormat(hovered.value)} {unit}
+            </strong>
+            {shortDate(hovered.timestamp)}
+          </div>
         )}
-      </svg>
+      </div>
 
-      {hovered && (
-        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-          <strong style={{ color: "var(--text-primary)" }}>{valueFormat(hovered.value)}</strong>{" "}
-          on {new Date(hovered.timestamp).toLocaleDateString()}
-        </div>
+      {points.length > 0 && (
+        <button className="link-btn" onClick={() => setShowTable((v) => !v)} aria-expanded={showTable}>
+          {showTable ? "Hide the numbers" : "Show the numbers"}
+        </button>
       )}
 
-      <button
-        onClick={() => setShowTable((v) => !v)}
-        style={{
-          marginTop: 8,
-          fontSize: 12,
-          background: "none",
-          border: "1px solid var(--card-border)",
-          borderRadius: 6,
-          padding: "4px 8px",
-          color: "var(--text-secondary)",
-          cursor: "pointer",
-        }}
-      >
-        {showTable ? "Hide" : "View"} as table
-      </button>
-
-      {showTable && (
-        <table style={{ width: "100%", marginTop: 8, borderCollapse: "collapse", fontSize: 13 }}>
+      {showTable && points.length > 0 && (
+        <table className="data-table">
           <thead>
             <tr>
-              <th style={{ textAlign: "left", color: "var(--text-secondary)", borderBottom: "1px solid var(--gridline)" }}>
-                Date
-              </th>
-              <th style={{ textAlign: "right", color: "var(--text-secondary)", borderBottom: "1px solid var(--gridline)" }}>
-                {valueLabel}
-              </th>
+              <th>Date</th>
+              <th className="num">{valueLabel}</th>
             </tr>
           </thead>
           <tbody>
-            {points.map((p) => (
+            {[...points].reverse().map((p) => (
               <tr key={p.id}>
-                <td style={{ color: "var(--text-primary)", padding: "2px 0" }}>
-                  {new Date(p.timestamp).toLocaleDateString()}
+                <td>{shortDate(p.timestamp)}</td>
+                <td className="num">
+                  {valueFormat(p.value)} {unit}
                 </td>
-                <td style={{ color: "var(--text-primary)", textAlign: "right" }}>{valueFormat(p.value)}</td>
               </tr>
             ))}
           </tbody>

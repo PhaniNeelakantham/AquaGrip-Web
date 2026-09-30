@@ -31,15 +31,15 @@ function generateMockSessions() {
     for (let s = 0; s < sessionsToday; s++) {
       const noise = () => (rand() - 0.5) * 2;
 
-      const peakForcePsi = Math.max(0.5, 4 + progress * 5 + noise() * 1.2);
+      const peakForcePsi = Math.max(0.5, 5 + progress * 3 + noise() * 1.2);
       const avgForcePsi = Math.max(0.3, peakForcePsi * (0.55 + noise() * 0.08));
-      const reps = Math.max(1, Math.round(6 + progress * 10 + noise() * 3));
-      const rotationRangeDeg = Math.max(10, 35 + progress * 45 + noise() * 10);
+      const reps = Math.max(1, Math.round(8 + progress * 6 + noise() * 3));
+      const rotationRangeDeg = Math.max(10, 45 + progress * 25 + noise() * 10);
       const durationS = Math.max(20, 60 + progress * 60 + noise() * 15);
 
       sessions.push({
         id: id++,
-        timestamp: dayStart + s * 3600_000 + Math.floor(rand() * 3600_000),
+        timestamp: dayStart - s * 3600_000 - Math.floor(rand() * 3600_000),
         durationS,
         peakForcePsi,
         avgForcePsi,
