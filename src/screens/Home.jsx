@@ -4,6 +4,7 @@ import { baselineForRange, improvementScore, percentChange, summarize } from "..
 import { WEEKLY_GOAL, currentStreak, greeting, scoreBand, statusText, weekOverview } from "../data/insights";
 import { GAMES } from "../data/games";
 import DemoBanner from "../components/DemoBanner";
+import InstallCard from "../components/InstallCard";
 import ScoreRing from "../components/ScoreRing";
 import StatTile from "../components/StatTile";
 import WeekStreak from "../components/WeekStreak";
@@ -46,6 +47,7 @@ export default function Home({ sessions, onNavigate, connectionState, demoMode }
         </button>
       </div>
 
+      <InstallCard />
       {demoMode && <DemoBanner onNavigate={onNavigate} />}
 
       <header className="screen-header">
