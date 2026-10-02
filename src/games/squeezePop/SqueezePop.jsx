@@ -381,7 +381,8 @@ export default function SqueezePop({ connectionState, readingRef: reading, demoM
             )}
             <SqueezeMeter level={view.level} target={view.bubble?.target.level} fillRef={meterFillRef} />
             {view.restSeconds > 0 && (
-              <div className="rest-chip">Nice work! Relax your hand… {view.restSeconds}</div>
+              <div className="rest-chip">Nice work! Relax your hand… </div>
+              <div className="rest-chip">{view.restSeconds} </div>
             )}
           </>
         )}
