@@ -24,9 +24,8 @@ export default function Home({ sessions, onNavigate, connectionState, demoMode }
     };
   }, [sessions]);
 
-  const hasMonth = data.now.count > 0;
-  const hasBaseline = data.before.count > 0;
-  const deltaFor = (a, b) => (hasMonth && hasBaseline ? percentChange(a, b) : null);
+  const grip = data.now.avgPeakForce;
+  const wrist = data.now.avgRotationRange;
 
   const remaining = Math.max(0, WEEKLY_GOAL - data.sessionsThisWeek);
   const band = scoreBand(data.score);
@@ -121,17 +120,17 @@ export default function Home({ sessions, onNavigate, connectionState, demoMode }
           icon={Hand}
           tint="sky"
           label="Grip strength"
-          value={hasMonth ? data.now.avgPeakForce.toFixed(1) : "—"}
-          unit={hasMonth ? "psi" : undefined}
-          delta={deltaFor(data.now.avgPeakForce, data.before.avgPeakForce)}
+          value={grip === null ? "—" : grip.toFixed(1)}
+          unit={grip === null ? undefined : "psi"}
+          delta={percentChange(grip, data.before.avgPeakForce)}
         />
         <StatTile
           icon={RotateCw}
           tint="lavender"
           label="Wrist motion"
-          value={hasMonth ? Math.round(data.now.avgRotationRange) : "—"}
-          unit={hasMonth ? "°" : undefined}
-          delta={deltaFor(data.now.avgRotationRange, data.before.avgRotationRange)}
+          value={wrist === null ? "—" : Math.round(wrist)}
+          unit={wrist === null ? undefined : "°"}
+          delta={percentChange(wrist, data.before.avgRotationRange)}
         />
       </div>
     </>

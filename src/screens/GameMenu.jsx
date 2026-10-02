@@ -1,8 +1,38 @@
-import { Clock, Hand } from "lucide-react";
+import { Clock, Hand, Play } from "lucide-react";
 import { GAMES } from "../data/games";
 import DevicePanel from "../components/DevicePanel";
 
-export default function GameMenu({ sensor, demoMode, onDemoModeChange }) {
+function GameCardBody({ game }) {
+  const { name, desc, trains, minutes, icon: Icon, playable } = game;
+  return (
+    <>
+      <div className="game-art">
+        <Icon size={34} strokeWidth={2} aria-hidden="true" />
+      </div>
+      <div className="game-body">
+        <h3 className="game-name">{name}</h3>
+        <p className="game-desc">{desc}</p>
+        <div className="game-meta">
+          <span className="chip">
+            <Hand size={14} aria-hidden="true" /> {trains}
+          </span>
+          <span className="chip">
+            <Clock size={14} aria-hidden="true" /> {minutes} min
+          </span>
+          {playable ? (
+            <span className="play-badge">
+              <Play size={13} fill="currentColor" aria-hidden="true" /> Play
+            </span>
+          ) : (
+            <span className="soon">Coming soon</span>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function GameMenu({ sensor, demoMode, onDemoModeChange, onPlay }) {
   return (
     <>
       <header className="screen-header">
@@ -18,26 +48,17 @@ export default function GameMenu({ sensor, demoMode, onDemoModeChange }) {
         <span className="section-note">{GAMES.length} games</span>
       </h2>
       <div className="games">
-        {GAMES.map(({ id, name, desc, trains, minutes, tint, icon: Icon }) => (
-          <article key={id} className={`game-card tint-${tint}`} aria-disabled="true">
-            <div className="game-art">
-              <Icon size={34} strokeWidth={2} aria-hidden="true" />
-            </div>
-            <div className="game-body">
-              <h3 className="game-name">{name}</h3>
-              <p className="game-desc">{desc}</p>
-              <div className="game-meta">
-                <span className="chip">
-                  <Hand size={14} aria-hidden="true" /> {trains}
-                </span>
-                <span className="chip">
-                  <Clock size={14} aria-hidden="true" /> {minutes} min
-                </span>
-                <span className="soon">Coming soon</span>
-              </div>
-            </div>
-          </article>
-        ))}
+        {GAMES.map((game) =>
+          game.playable ? (
+            <button key={game.id} className={`game-card tint-${game.tint}`} onClick={() => onPlay(game.id)}>
+              <GameCardBody game={game} />
+            </button>
+          ) : (
+            <article key={game.id} className={`game-card tint-${game.tint}`} aria-disabled="true">
+              <GameCardBody game={game} />
+            </article>
+          )
+        )}
       </div>
     </>
   );

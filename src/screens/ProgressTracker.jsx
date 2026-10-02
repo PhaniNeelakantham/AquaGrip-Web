@@ -12,6 +12,32 @@ import LineChart from "../components/LineChart";
 import ScoreRing from "../components/ScoreRing";
 import StatTile from "../components/StatTile";
 import DemoBanner from "../components/DemoBanner";
+import { GAMES } from "../data/games";
+
+function SessionRow({ session: s }) {
+  const game = GAMES.find((g) => g.id === s.game);
+  const minutes = Math.round(s.durationS / 60) || 1;
+  const isGrip = Number.isFinite(s.peakForcePsi);
+  const Icon = game?.icon ?? Hand;
+
+  return (
+    <div className={`list-row tint-${game?.tint ?? "sky"}`}>
+      <div className="list-icon">
+        <Icon size={20} aria-hidden="true" />
+      </div>
+      <div className="list-main">
+        <div className="list-title">{friendlyDate(s.timestamp)}</div>
+        <div className="list-sub">
+          {game ? game.name : `${s.reps} squeezes`} · {minutes} min
+        </div>
+      </div>
+      <div className="list-value">
+        {isGrip ? s.peakForcePsi.toFixed(1) : `${Math.round(s.rotationRangeDeg)}°`}
+        <small>{isGrip ? "best psi" : "wrist range"}</small>
+      </div>
+    </div>
+  );
+}
 
 function EmptyProgress({ onNavigate }) {
   return (
@@ -43,8 +69,10 @@ export default function ProgressTracker({ sessions, demoMode, onNavigate }) {
   const band = scoreBand(data.score);
   const compare = comparisonLabel(range);
   const recent = data.current.slice(-4).reverse();
-  const has = data.now.count > 0;
-  const deltaFor = (a, b) => (has && data.before.count > 0 ? percentChange(a, b) : null);
+  const { avgPeakForce: grip, avgReps: reps, avgRotationRange: wrist } = data.now;
+  const gripPoints = data.current
+    .filter((s) => Number.isFinite(s.avgForcePsi))
+    .map((s) => ({ id: s.id, timestamp: s.timestamp, value: s.avgForcePsi }));
 
   const header = (
     <>
@@ -104,11 +132,11 @@ export default function ProgressTracker({ sessions, demoMode, onNavigate }) {
       <h2 className="section-title">Grip strength over time</h2>
       <section className="card">
         <p className="card-sub">Your average squeeze in each session</p>
-        <LineChart
-          points={data.current.map((s) => ({ id: s.id, timestamp: s.timestamp, value: s.avgForcePsi }))}
-          valueLabel="Average squeeze"
-          unit="psi"
-        />
+        {gripPoints.length === 0 && data.current.length > 0 ? (
+          <p className="card-sub">No grip games in this time range yet.</p>
+        ) : (
+          <LineChart points={gripPoints} valueLabel="Average squeeze" unit="psi" />
+        )}
       </section>
 
       <h2 className="section-title">
@@ -120,24 +148,24 @@ export default function ProgressTracker({ sessions, demoMode, onNavigate }) {
           icon={Hand}
           tint="sky"
           label="Grip strength"
-          value={has ? data.now.avgPeakForce.toFixed(1) : "—"}
-          unit={has ? "psi" : undefined}
-          delta={deltaFor(data.now.avgPeakForce, data.before.avgPeakForce)}
+          value={grip === null ? "—" : grip.toFixed(1)}
+          unit={grip === null ? undefined : "psi"}
+          delta={percentChange(grip, data.before.avgPeakForce)}
         />
         <StatTile
           icon={Repeat}
           tint="mint"
           label="Squeezes per session"
-          value={has ? Math.round(data.now.avgReps) : "—"}
-          delta={deltaFor(data.now.avgReps, data.before.avgReps)}
+          value={reps === null ? "—" : Math.round(reps)}
+          delta={percentChange(reps, data.before.avgReps)}
         />
         <StatTile
           icon={RotateCw}
           tint="lavender"
           label="Wrist motion"
-          value={has ? Math.round(data.now.avgRotationRange) : "—"}
-          unit={has ? "°" : undefined}
-          delta={deltaFor(data.now.avgRotationRange, data.before.avgRotationRange)}
+          value={wrist === null ? "—" : Math.round(wrist)}
+          unit={wrist === null ? undefined : "°"}
+          delta={percentChange(wrist, data.before.avgRotationRange)}
         />
         <StatTile icon={CalendarCheck} tint="peach" label="Sessions" value={data.now.count} />
       </div>
@@ -147,21 +175,7 @@ export default function ProgressTracker({ sessions, demoMode, onNavigate }) {
           <h2 className="section-title">Recent sessions</h2>
           <section className="card" style={{ paddingBlock: 8 }}>
             {recent.map((s) => (
-              <div key={s.id} className="list-row tint-sky">
-                <div className="list-icon">
-                  <Hand size={20} aria-hidden="true" />
-                </div>
-                <div className="list-main">
-                  <div className="list-title">{friendlyDate(s.timestamp)}</div>
-                  <div className="list-sub">
-                    {s.reps} squeezes · {Math.round(s.durationS / 60) || 1} min
-                  </div>
-                </div>
-                <div className="list-value">
-                  {s.peakForcePsi.toFixed(1)}
-                  <small>best psi</small>
-                </div>
-              </div>
+              <SessionRow key={s.id} session={s} />
             ))}
           </section>
         </>

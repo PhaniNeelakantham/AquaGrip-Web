@@ -1123,3 +1123,230 @@ p {
   color: var(--ink-2);
   margin: 6px 0 18px;
 }
+
+/* ---------- game screen ---------- */
+.screen--game {
+  padding-bottom: 32px;
+}
+
+.game-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.icon-btn {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.game-bar-title {
+  flex: 1;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.game-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.maze-wrap {
+  position: relative;
+  border-radius: 20px;
+  box-shadow: var(--shadow-lift);
+}
+
+.maze-wrap canvas {
+  display: block;
+  border-radius: 18px;
+}
+
+.game-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(3px);
+  animation: screen-in 240ms ease-out both;
+}
+
+.overlay-card {
+  width: 100%;
+  max-width: 340px;
+  padding: 22px;
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+  text-align: center;
+}
+
+.overlay-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 12px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--tint);
+  color: var(--icon);
+}
+
+.overlay-card h2 {
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.steps {
+  text-align: left;
+  margin: 14px 0 6px;
+  padding-left: 22px;
+  font-size: 16px;
+  color: var(--ink-2);
+}
+
+.steps li + li {
+  margin-top: 6px;
+}
+
+.overlay-note {
+  font-size: 14px;
+  color: var(--ink-3);
+  margin: 10px 0 4px;
+}
+
+.btn-block {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.result-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0 4px;
+}
+
+.result-stats > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.result-stats strong {
+  font-size: 24px;
+  color: var(--ink);
+}
+
+.game-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.tilt-indicator {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--gridline);
+  box-shadow: var(--shadow);
+}
+
+.tilt-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.game-hint {
+  flex: 1;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.pad {
+  display: grid;
+  grid-template-areas: ". up ." "left . right" ". down .";
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(3, 52px);
+  gap: 4px;
+}
+
+.pad-btn {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pad-btn:active {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+/* playable game card */
+button.game-card {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+button.game-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+.play-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--on-primary);
+  background: var(--primary);
+}

@@ -6,6 +6,7 @@ import BottomNav from "./components/BottomNav";
 import Home from "./screens/Home";
 import GameMenu from "./screens/GameMenu";
 import ProgressTracker from "./screens/ProgressTracker";
+import TiltMaze from "./games/tiltMaze/TiltMaze";
 
 function App() {
   const [tab, setTab] = useState("home");
@@ -25,6 +26,20 @@ function App() {
     setDemoMode(next);
   };
 
+  const [playing, setPlaying] = useState(null);
+  const leaveGame = () => {
+    setPlaying(null);
+    navigate("games");
+  };
+
+  if (playing === "tilt-maze") {
+    return (
+      <main className="screen screen--game">
+        <TiltMaze sensor={sensor} demoMode={demoMode} onExit={leaveGame} onGoToDevice={leaveGame} />
+      </main>
+    );
+  }
+
   return (
     <>
       <main key={tab} className="screen">
@@ -37,7 +52,15 @@ function App() {
           />
         )}
         {tab === "games" && (
-          <GameMenu sensor={sensor} demoMode={demoMode} onDemoModeChange={changeDemoMode} />
+          <GameMenu
+            sensor={sensor}
+            demoMode={demoMode}
+            onDemoModeChange={changeDemoMode}
+            onPlay={(id) => {
+              setPlaying(id);
+              window.scrollTo({ top: 0 });
+            }}
+          />
         )}
         {tab === "progress" && (
           <ProgressTracker sessions={sessions} demoMode={demoMode} onNavigate={navigate} />

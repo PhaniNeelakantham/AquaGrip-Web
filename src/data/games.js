@@ -1,7 +1,17 @@
 import { CircleDot, Compass, Target } from "lucide-react";
 
-// Placeholder catalog -- names and mechanics are not final.
+// Game catalog. Only games with `playable: true` have been built so far.
 export const GAMES = [
+  {
+    id: "tilt-maze",
+    name: "Tilt Maze",
+    desc: "Tilt your wrist to roll the ball to the flag.",
+    trains: "Wrist",
+    minutes: 2,
+    tint: "lavender",
+    icon: Compass,
+    playable: true,
+  },
   {
     id: "squeeze-pop",
     name: "Squeeze Pop",
@@ -10,15 +20,6 @@ export const GAMES = [
     minutes: 2,
     tint: "sky",
     icon: CircleDot,
-  },
-  {
-    id: "tilt-maze",
-    name: "Tilt Maze",
-    desc: "Turn your wrist to roll the ball to the finish.",
-    trains: "Wrist",
-    minutes: 3,
-    tint: "lavender",
-    icon: Compass,
   },
   {
     id: "hold-steady",

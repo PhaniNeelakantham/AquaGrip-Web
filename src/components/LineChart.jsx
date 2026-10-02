@@ -1,19 +1,8 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
+import { useElementWidth } from "../hooks/useElementWidth";
 
 const HEIGHT = 200;
 const PAD = { top: 22, right: 14, bottom: 30, left: 34 };
-
-function useElementWidth(ref) {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [ref]);
-  return width;
-}
 
 const shortDate = (t) => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 

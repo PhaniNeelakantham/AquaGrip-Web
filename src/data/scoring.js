@@ -45,16 +45,24 @@ function average(values) {
   return values.reduce((sum, v) => sum + v, 0) / values.length;
 }
 
+// Averages only the sessions that recorded this metric (a wrist-only game
+// has no grip numbers); null when none did.
+function averageOf(sessions, key) {
+  const values = sessions.map((s) => s[key]).filter(Number.isFinite);
+  return values.length ? average(values) : null;
+}
+
 export function summarize(sessions) {
   return {
     count: sessions.length,
-    avgPeakForce: average(sessions.map((s) => s.peakForcePsi)),
-    avgReps: average(sessions.map((s) => s.reps)),
-    avgRotationRange: average(sessions.map((s) => s.rotationRangeDeg)),
+    avgPeakForce: averageOf(sessions, "peakForcePsi"),
+    avgReps: averageOf(sessions, "reps"),
+    avgRotationRange: averageOf(sessions, "rotationRangeDeg"),
   };
 }
 
 export function percentChange(current, baseline) {
+  if (current === null || baseline === null) return null;
   if (baseline === 0) return current === 0 ? 0 : 100;
   return ((current - baseline) / baseline) * 100;
 }
@@ -68,16 +76,13 @@ function metricScore(current, baseline) {
   return 50 + clamped;
 }
 
-// The "improvement score out of 100": average of three metric scores
-// (peak force, reps, rotation range), each comparing the selected period
-// against the period immediately before it. 50 = no change, 100 = each
-// metric up 50%+, 0 = each down 50%+.
+// The "improvement score out of 100": average of the metric scores (peak
+// force, reps, rotation range) that both periods have data for, comparing
+// the selected period against the one immediately before it.
+// 50 = no change, 100 = each metric up 50%+, 0 = each down 50%+.
 export function improvementScore(currentSummary, baselineSummary) {
-  if (baselineSummary.count === 0) return null; // not enough history yet
-  const scores = [
-    metricScore(currentSummary.avgPeakForce, baselineSummary.avgPeakForce),
-    metricScore(currentSummary.avgReps, baselineSummary.avgReps),
-    metricScore(currentSummary.avgRotationRange, baselineSummary.avgRotationRange),
-  ];
-  return Math.round(average(scores));
+  const scores = ["avgPeakForce", "avgReps", "avgRotationRange"]
+    .filter((k) => currentSummary[k] !== null && baselineSummary[k] !== null)
+    .map((k) => metricScore(currentSummary[k], baselineSummary[k]));
+  return scores.length ? Math.round(average(scores)) : null;
 }
