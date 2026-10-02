@@ -1350,3 +1350,238 @@ button.game-card:hover {
   color: var(--on-primary);
   background: var(--primary);
 }
+
+/* ---------- squeeze pop ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.pop-area {
+  position: relative;
+  overflow: hidden;
+  height: min(460px, 58svh);
+  border-radius: 24px;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--tint-sky) 100%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lift);
+}
+
+.pop-decor {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--icon-sky) 14%, transparent);
+  pointer-events: none;
+}
+.pop-decor--a { width: 60px; height: 60px; left: 10%; top: 18%; }
+.pop-decor--b { width: 34px; height: 34px; right: 22%; top: 46%; }
+
+.bubble {
+  position: absolute;
+  width: 112px;
+  height: 112px;
+  transform: translateX(-50%);
+}
+
+.bubble-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 32% 28%,
+    var(--bubble-shine) 0%,
+    var(--tint) 46%,
+    color-mix(in srgb, var(--icon) 22%, var(--tint)) 100%
+  );
+  box-shadow:
+    inset -6px -8px 18px color-mix(in srgb, var(--icon) 16%, transparent),
+    0 10px 22px rgba(20, 23, 43, 0.12);
+}
+
+.bubble-body svg {
+  position: absolute;
+  inset: 0;
+}
+
+.bubble-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--icon) 16%, transparent);
+  stroke-width: 6;
+}
+
+.bubble-ring {
+  fill: none;
+  stroke: var(--icon);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 80ms linear;
+}
+
+.bubble-label {
+  position: relative;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--icon);
+}
+
+.bubble-body.is-charged {
+  animation: bubble-pulse 900ms ease-in-out infinite;
+}
+
+.bubble-body.is-popped {
+  animation: bubble-pop 380ms ease-out forwards;
+}
+
+.bubble-body.is-escaped {
+  animation: bubble-fade 500ms ease-out forwards;
+}
+
+@keyframes bubble-pulse {
+  50% { transform: scale(1.06); }
+}
+@keyframes bubble-pop {
+  to { transform: scale(1.5); opacity: 0; }
+}
+@keyframes bubble-fade {
+  to { transform: translateY(-30px); opacity: 0; }
+}
+
+.pop-plus {
+  position: absolute;
+  left: 50%;
+  top: 20%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--good);
+  animation: plus-rise 600ms ease-out forwards;
+}
+
+@keyframes plus-rise {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to { opacity: 0; transform: translate(-50%, -40px); }
+}
+
+.squeeze-meter {
+  position: absolute;
+  right: 14px;
+  top: 16px;
+  bottom: 16px;
+  width: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.squeeze-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(0deg, var(--teal), var(--tile-games-from));
+  transition: height 60ms linear;
+}
+
+.squeeze-goal {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  height: 3px;
+  background: var(--ink);
+}
+
+.rest-chip {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translateX(-50%);
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.hold-wrap {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.hold-btn {
+  width: 100%;
+  min-height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: none;
+  border-radius: 20px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 120ms ease;
+}
+
+.hold-btn:active {
+  transform: scale(0.97);
+}
+
+.hold-wrap .game-hint {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.cal-bar {
+  height: 12px;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: var(--gridline);
+  overflow: hidden;
+}
+
+.cal-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--teal);
+}
+
+.cal-felt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.cal-felt.is-on {
+  color: var(--good);
+}
+
+.overlay-note--warn {
+  color: var(--bad);
+}
+
+.result-stats--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.result-stats--3 strong {
+  font-size: 20px;
+}

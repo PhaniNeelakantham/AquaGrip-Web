@@ -7,6 +7,12 @@ import Home from "./screens/Home";
 import GameMenu from "./screens/GameMenu";
 import ProgressTracker from "./screens/ProgressTracker";
 import TiltMaze from "./games/tiltMaze/TiltMaze";
+import SqueezePop from "./games/squeezePop/SqueezePop";
+
+const GAME_SCREENS = {
+  "tilt-maze": TiltMaze,
+  "squeeze-pop": SqueezePop,
+};
 
 function App() {
   const [tab, setTab] = useState("home");
@@ -32,10 +38,11 @@ function App() {
     navigate("games");
   };
 
-  if (playing === "tilt-maze") {
+  const Game = GAME_SCREENS[playing];
+  if (Game) {
     return (
       <main className="screen screen--game">
-        <TiltMaze sensor={sensor} demoMode={demoMode} onExit={leaveGame} onGoToDevice={leaveGame} />
+        <Game sensor={sensor} demoMode={demoMode} onExit={leaveGame} onGoToDevice={leaveGame} />
       </main>
     );
   }

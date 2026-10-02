@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Bluetooth, Crosshair } from "lucide-react";
 import { angleDelta, toAngles } from "../ble/orientation";
+import { getCalibration } from "../data/gripCalibration";
 
 const MAX_METER_PSI = 12;
 const AXIS_RANGE_DEG = 90;
@@ -30,9 +31,19 @@ function AxisBar({ label, hint, degrees }) {
   );
 }
 
-function LiveMeters({ reading }) {
+// The sensor reads absolute pressure (a relaxed hand may read ~14.7 psi), so
+// the meter shows squeeze *above* rest: the saved grip check if there is one,
+// otherwise the lowest reading seen since connecting.
+function LiveMeters({ reading, demoMode }) {
   const [center, setCenter] = useState({ pitch: 0, roll: 0, yaw: 0 });
-  const squeezePct = Math.min(1, Math.max(0, reading.forcePsi / MAX_METER_PSI)) * 100;
+  const [lowest, setLowest] = useState(reading.forcePsi);
+  if (reading.forcePsi < lowest) setLowest(reading.forcePsi);
+
+  const calibration = demoMode ? null : getCalibration(false);
+  const restPsi = calibration?.restPsi ?? lowest;
+  const spanPsi = calibration ? calibration.maxPsi - calibration.restPsi : MAX_METER_PSI;
+  const squeezePsi = Math.max(0, reading.forcePsi - restPsi);
+  const squeezePct = Math.min(1, squeezePsi / spanPsi) * 100;
   const angles = toAngles(reading);
 
   return (
@@ -40,7 +51,7 @@ function LiveMeters({ reading }) {
       <div>
         <div className="meter-head">
           <span>Squeeze</span>
-          <strong>{reading.forcePsi.toFixed(1)} psi</strong>
+          <strong>{squeezePsi.toFixed(1)} psi</strong>
         </div>
         <div className="meter-track">
           <div className="meter-fill" style={{ width: `${squeezePct}%` }} />
@@ -95,7 +106,7 @@ export default function DevicePanel({ sensor, demoMode, onDemoModeChange }) {
         </div>
       </div>
 
-      {connected && <LiveMeters reading={reading} />}
+      {connected && <LiveMeters reading={reading} demoMode={demoMode} />}
       {error && <p className="device-error">{error}</p>}
 
       <div className="device-actions">

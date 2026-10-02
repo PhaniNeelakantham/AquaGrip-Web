@@ -6,13 +6,14 @@ const STORAGE_KEY = "aquagrip.sessions.v1";
 const listeners = new Set();
 let cache = null;
 
-// Grip metrics may be null for wrist-only games; wrist range and timing are always recorded.
+// Each game records only what it measures: grip metrics are null for
+// wrist-only games, wrist range is null for grip-only games.
 const numberOrNull = (v) => v === null || Number.isFinite(v);
 const isValidSession = (s) =>
   s &&
   Number.isFinite(s.timestamp) &&
   Number.isFinite(s.durationS) &&
-  Number.isFinite(s.rotationRangeDeg) &&
+  numberOrNull(s.rotationRangeDeg) &&
   numberOrNull(s.peakForcePsi) &&
   numberOrNull(s.avgForcePsi) &&
   numberOrNull(s.reps);

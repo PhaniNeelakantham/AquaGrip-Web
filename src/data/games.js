@@ -20,6 +20,7 @@ export const GAMES = [
     minutes: 2,
     tint: "sky",
     icon: CircleDot,
+    playable: true,
   },
   {
     id: "hold-steady",

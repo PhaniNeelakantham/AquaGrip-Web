@@ -50,6 +50,8 @@
   --bad: #b8431f;
   --bad-bg: #ffe8de;
 
+  --bubble-shine: rgba(255, 255, 255, 0.95);
+
   --gridline: #e7e9f1;
   --axis: #c9ccda;
 
@@ -99,6 +101,8 @@
     --good-bg: rgba(91, 217, 139, 0.14);
     --bad: #ff9a7a;
     --bad-bg: rgba(255, 154, 122, 0.14);
+
+    --bubble-shine: rgba(255, 255, 255, 0.28);
 
     --gridline: #262a40;
     --axis: #3a3f58;
