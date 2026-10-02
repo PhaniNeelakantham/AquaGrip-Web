@@ -1600,7 +1600,7 @@ button.game-card:hover {
   align-items: center;
   gap: 12px;
   margin-bottom: 18px;
-  padding: 14px 40px 14px 14px;
+  padding: 14px;
   border-radius: 20px;
   background: var(--tint);
   border: 1px solid var(--border);
@@ -1636,17 +1636,3 @@ button.game-card:hover {
   padding: 9px 16px;
 }
 
-.install-close {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: 10px;
-  background: none;
-  color: var(--ink-3);
-  cursor: pointer;
-}

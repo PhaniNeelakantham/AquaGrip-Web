@@ -6,8 +6,9 @@ let deferredPrompt = null;
 const listeners = new Set();
 const notify = () => listeners.forEach((fn) => fn());
 
-const isInstalled = () =>
-  window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+const standaloneQuery = window.matchMedia("(display-mode: standalone)");
+const isInstalled = () => standaloneQuery.matches || window.navigator.standalone === true;
+standaloneQuery.addEventListener("change", () => notify());
 
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault(); // show our own button instead of the browser's mini-bar
@@ -25,10 +26,17 @@ const subscribe = (fn) => {
   return () => listeners.delete(fn);
 };
 
-// True when the browser is ready to install the app and it isn't installed yet.
-export function useCanInstall() {
-  return useSyncExternalStore(subscribe, () => deferredPrompt !== null && !isInstalled());
+// "installed" (running as the app), "ready" (one-click install available),
+// or "manual" (browser needs its own menu, e.g. iPhone Safari).
+export function useInstallState() {
+  return useSyncExternalStore(subscribe, () =>
+    isInstalled() ? "installed" : deferredPrompt ? "ready" : "manual"
+  );
 }
+
+export const isIOS = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 export async function promptInstall() {
   if (!deferredPrompt) return false;
