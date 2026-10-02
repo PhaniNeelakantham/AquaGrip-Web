@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarCheck, Hand, Info, Repeat, RotateCw, Sparkles } from "lucide-react";
-import { mockSessions } from "../data/mockSessions";
+import { CalendarCheck, Gamepad2, Hand, Info, Repeat, RotateCw, Sparkles, TrendingUp } from "lucide-react";
 import {
   RANGE_OPTIONS,
   baselineForRange,
@@ -12,28 +11,63 @@ import { comparisonLabel, friendlyDate, scoreBand } from "../data/insights";
 import LineChart from "../components/LineChart";
 import ScoreRing from "../components/ScoreRing";
 import StatTile from "../components/StatTile";
+import DemoBanner from "../components/DemoBanner";
 
-export default function ProgressTracker() {
+function EmptyProgress({ onNavigate }) {
+  return (
+    <section className="card empty tint-lavender">
+      <div className="empty-icon">
+        <TrendingUp size={30} aria-hidden="true" />
+      </div>
+      <h2>No sessions yet</h2>
+      <p>Play a game and your progress will show up here: your score, charts, and streaks.</p>
+      <button className="btn btn-primary" onClick={() => onNavigate("games")}>
+        <Gamepad2 size={18} aria-hidden="true" style={{ verticalAlign: "-3px", marginRight: 8 }} />
+        Go to games
+      </button>
+    </section>
+  );
+}
+
+export default function ProgressTracker({ sessions, demoMode, onNavigate }) {
   const [rangeId, setRangeId] = useState("30d");
   const range = RANGE_OPTIONS.find((r) => r.id === rangeId);
 
   const data = useMemo(() => {
-    const { current, baseline } = baselineForRange(mockSessions, range.days);
+    const { current, baseline } = baselineForRange(sessions, range.days);
     const now = summarize(current);
     const before = summarize(baseline);
     return { current, now, before, score: improvementScore(now, before) };
-  }, [range.days]);
+  }, [sessions, range.days]);
 
   const band = scoreBand(data.score);
   const compare = comparisonLabel(range);
   const recent = data.current.slice(-4).reverse();
+  const has = data.now.count > 0;
+  const deltaFor = (a, b) => (has && data.before.count > 0 ? percentChange(a, b) : null);
 
-  return (
+  const header = (
     <>
+      {demoMode && <DemoBanner onNavigate={onNavigate} />}
       <header className="screen-header">
         <div className="eyebrow">Progress</div>
         <h1 className="title">How you're doing</h1>
       </header>
+    </>
+  );
+
+  if (sessions.length === 0) {
+    return (
+      <>
+        {header}
+        <EmptyProgress onNavigate={onNavigate} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      {header}
 
       <div className="segmented" role="group" aria-label="Time range">
         {RANGE_OPTIONS.map((opt) => (
@@ -86,24 +120,24 @@ export default function ProgressTracker() {
           icon={Hand}
           tint="sky"
           label="Grip strength"
-          value={data.now.avgPeakForce.toFixed(1)}
-          unit="psi"
-          delta={percentChange(data.now.avgPeakForce, data.before.avgPeakForce)}
+          value={has ? data.now.avgPeakForce.toFixed(1) : "—"}
+          unit={has ? "psi" : undefined}
+          delta={deltaFor(data.now.avgPeakForce, data.before.avgPeakForce)}
         />
         <StatTile
           icon={Repeat}
           tint="mint"
           label="Squeezes per session"
-          value={Math.round(data.now.avgReps)}
-          delta={percentChange(data.now.avgReps, data.before.avgReps)}
+          value={has ? Math.round(data.now.avgReps) : "—"}
+          delta={deltaFor(data.now.avgReps, data.before.avgReps)}
         />
         <StatTile
           icon={RotateCw}
           tint="lavender"
           label="Wrist motion"
-          value={Math.round(data.now.avgRotationRange)}
-          unit="°"
-          delta={percentChange(data.now.avgRotationRange, data.before.avgRotationRange)}
+          value={has ? Math.round(data.now.avgRotationRange) : "—"}
+          unit={has ? "°" : undefined}
+          delta={deltaFor(data.now.avgRotationRange, data.before.avgRotationRange)}
         />
         <StatTile icon={CalendarCheck} tint="peach" label="Sessions" value={data.now.count} />
       </div>

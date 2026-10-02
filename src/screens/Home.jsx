@@ -1,28 +1,32 @@
 import { useMemo } from "react";
 import { ArrowUpRight, Droplet, Gamepad2, Hand, RotateCw, TrendingUp } from "lucide-react";
-import { mockSessions } from "../data/mockSessions";
 import { baselineForRange, improvementScore, percentChange, summarize } from "../data/scoring";
 import { WEEKLY_GOAL, currentStreak, greeting, scoreBand, statusText, weekOverview } from "../data/insights";
 import { GAMES } from "../data/games";
+import DemoBanner from "../components/DemoBanner";
 import ScoreRing from "../components/ScoreRing";
 import StatTile from "../components/StatTile";
 import WeekStreak from "../components/WeekStreak";
 
-export default function Home({ onNavigate, connectionState, demoMode }) {
+export default function Home({ sessions, onNavigate, connectionState, demoMode }) {
   const data = useMemo(() => {
-    const { days, sessionsThisWeek } = weekOverview(mockSessions);
-    const { current, baseline } = baselineForRange(mockSessions, 30);
+    const { days, sessionsThisWeek } = weekOverview(sessions);
+    const { current, baseline } = baselineForRange(sessions, 30);
     const now = summarize(current);
     const before = summarize(baseline);
     return {
       days,
       sessionsThisWeek,
-      streak: currentStreak(mockSessions),
+      streak: currentStreak(sessions),
       now,
       before,
       score: improvementScore(now, before),
     };
-  }, []);
+  }, [sessions]);
+
+  const hasMonth = data.now.count > 0;
+  const hasBaseline = data.before.count > 0;
+  const deltaFor = (a, b) => (hasMonth && hasBaseline ? percentChange(a, b) : null);
 
   const remaining = Math.max(0, WEEKLY_GOAL - data.sessionsThisWeek);
   const band = scoreBand(data.score);
@@ -42,6 +46,8 @@ export default function Home({ onNavigate, connectionState, demoMode }) {
           {statusText(connectionState, demoMode)}
         </button>
       </div>
+
+      {demoMode && <DemoBanner onNavigate={onNavigate} />}
 
       <header className="screen-header">
         <div className="eyebrow">{greeting()}</div>
@@ -115,17 +121,17 @@ export default function Home({ onNavigate, connectionState, demoMode }) {
           icon={Hand}
           tint="sky"
           label="Grip strength"
-          value={data.now.avgPeakForce.toFixed(1)}
-          unit="psi"
-          delta={percentChange(data.now.avgPeakForce, data.before.avgPeakForce)}
+          value={hasMonth ? data.now.avgPeakForce.toFixed(1) : "—"}
+          unit={hasMonth ? "psi" : undefined}
+          delta={deltaFor(data.now.avgPeakForce, data.before.avgPeakForce)}
         />
         <StatTile
           icon={RotateCw}
           tint="lavender"
           label="Wrist motion"
-          value={Math.round(data.now.avgRotationRange)}
-          unit="°"
-          delta={percentChange(data.now.avgRotationRange, data.before.avgRotationRange)}
+          value={hasMonth ? Math.round(data.now.avgRotationRange) : "—"}
+          unit={hasMonth ? "°" : undefined}
+          delta={deltaFor(data.now.avgRotationRange, data.before.avgRotationRange)}
         />
       </div>
     </>
