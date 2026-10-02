@@ -89,7 +89,7 @@ function ArrowPad({ held }) {
   );
 }
 
-export default function TiltMaze({ sensor, demoMode, onExit, onGoToDevice }) {
+export default function TiltMaze({ connectionState, readingRef: reading, demoMode, onExit, onGoToDevice }) {
   const [phase, setPhase] = useState("intro"); // intro | playing | done
   const [maze, setMaze] = useState(() => generateMaze(COLS, ROWS));
   const [elapsed, setElapsed] = useState(0);
@@ -106,14 +106,10 @@ export default function TiltMaze({ sensor, demoMode, onExit, onGoToDevice }) {
   const held = useRef(new Set());
   const keyTilt = useRef({ x: 0, y: 0 });
   const center = useRef({ pitch: 0, roll: 0, yaw: 0 });
-  const reading = useRef(sensor.reading);
   const range = useRef({ minX: 0, maxX: 0, minY: 0, maxY: 0 });
   const colors = useRef(null);
-  useEffect(() => {
-    reading.current = sensor.reading;
-  }, [sensor.reading]);
 
-  const connected = sensor.connectionState === "connected";
+  const connected = connectionState === "connected";
   const canStart = demoMode || connected;
 
   const cellPx = width / (COLS + WALL);
@@ -241,7 +237,7 @@ export default function TiltMaze({ sensor, demoMode, onExit, onGoToDevice }) {
       const axis = (m) => angleDelta(angles[m.axis], center.current[m.axis]) * m.sign;
       return { x: axis(AXIS_MAP.x), y: axis(AXIS_MAP.y) };
     },
-    [demoMode]
+    [demoMode, reading]
   );
 
   const finish = useCallback(
@@ -274,7 +270,7 @@ export default function TiltMaze({ sensor, demoMode, onExit, onGoToDevice }) {
     let lastUi = 0;
 
     const step = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
       last = now;
 
       const tilt = readTilt(dt);

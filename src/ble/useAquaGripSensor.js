@@ -22,6 +22,14 @@ export function useAquaGripSensor({ mock = false } = {}) {
 
   const deviceRef = useRef(null);
   const stopMockRef = useRef(null);
+  // Games read the newest sample from this ref every animation frame, so
+  // they never wait for (or trigger) a React re-render to get sensor data.
+  const readingRef = useRef(ZERO_READING);
+
+  const publish = useCallback((next) => {
+    readingRef.current = next;
+    setReading(next);
+  }, []);
 
   const disconnect = useCallback(() => {
     if (stopMockRef.current) {
@@ -40,7 +48,8 @@ export function useAquaGripSensor({ mock = false } = {}) {
 
     if (mock) {
       setConnectionState("connecting");
-      stopMockRef.current = startMockReadings(setReading);
+      stopMockRef.current?.(); // never run two demo streams at once
+      stopMockRef.current = startMockReadings(publish);
       setStatus("MOCK");
       setConnectionState("connected");
       return;
@@ -69,7 +78,7 @@ export function useAquaGripSensor({ mock = false } = {}) {
       const dataChar = await service.getCharacteristic(DATA_CHAR_UUID);
       await dataChar.startNotifications();
       dataChar.addEventListener("characteristicvaluechanged", (event) => {
-        setReading(decodeReading(event.target.value));
+        publish(decodeReading(event.target.value));
       });
 
       const statusChar = await service.getCharacteristic(STATUS_CHAR_UUID);
@@ -83,10 +92,10 @@ export function useAquaGripSensor({ mock = false } = {}) {
       setError(err instanceof Error ? err.message : String(err));
       setConnectionState("disconnected");
     }
-  }, [mock]);
+  }, [mock, publish]);
 
   // Disconnect cleanly if the component using this hook unmounts.
   useEffect(() => disconnect, [disconnect]);
 
-  return { connectionState, reading, status, error, connect, disconnect };
+  return { connectionState, reading, readingRef, status, error, connect, disconnect };
 }

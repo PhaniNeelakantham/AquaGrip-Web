@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useAquaGripSensor } from "./ble/useAquaGripSensor";
 import { mockSessions } from "./data/mockSessions";
 import { useSavedSessions } from "./data/sessionStore";
@@ -9,9 +9,11 @@ import ProgressTracker from "./screens/ProgressTracker";
 import TiltMaze from "./games/tiltMaze/TiltMaze";
 import SqueezePop from "./games/squeezePop/SqueezePop";
 
+// Memoized so the sensor's ~50 updates per second don't re-render a game;
+// games read live data from `readingRef` inside their own frame loop.
 const GAME_SCREENS = {
-  "tilt-maze": TiltMaze,
-  "squeeze-pop": SqueezePop,
+  "tilt-maze": memo(TiltMaze),
+  "squeeze-pop": memo(SqueezePop),
 };
 
 function App() {
@@ -33,16 +35,23 @@ function App() {
   };
 
   const [playing, setPlaying] = useState(null);
-  const leaveGame = () => {
+  const leaveGame = useCallback(() => {
     setPlaying(null);
-    navigate("games");
-  };
+    setTab("games");
+    window.scrollTo({ top: 0 });
+  }, []);
 
   const Game = GAME_SCREENS[playing];
   if (Game) {
     return (
       <main className="screen screen--game">
-        <Game sensor={sensor} demoMode={demoMode} onExit={leaveGame} onGoToDevice={leaveGame} />
+        <Game
+          connectionState={sensor.connectionState}
+          readingRef={sensor.readingRef}
+          demoMode={demoMode}
+          onExit={leaveGame}
+          onGoToDevice={leaveGame}
+        />
       </main>
     );
   }

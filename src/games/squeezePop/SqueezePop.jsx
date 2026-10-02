@@ -14,7 +14,7 @@ const RELAX_SECONDS = 2.5;
 const CAL_SQUEEZE_SECONDS = 5;
 const DEMO_MAX_PSI = 10;
 const DEMO_RISE = 6; // pretend psi per second while the button is held
-const DEMO_FALL = 18;
+const DEMO_FALL = 32; // a real hand lets go fast, so the pretend grip drops quickly
 const MIN_RANGE = { demo: 2, real: 0.5 }; // smallest squeeze the grip check accepts
 const BUBBLE_SIZE = 112;
 
@@ -23,15 +23,18 @@ function randomTarget(prev) {
   return options[Math.floor(Math.random() * options.length)];
 }
 
-function Bubble({ bubble, level = 0, effect }) {
-  const r = 50;
-  const circumference = 2 * Math.PI * r;
-  const fill = effect ? 1 : Math.min(1, level / bubble.target.level);
+const RING_R = 50;
+const RING_LENGTH = 2 * Math.PI * RING_R;
+const bubbleBottom = (y) => `calc(${y} * (100% - ${BUBBLE_SIZE}px))`;
+const ringOffset = (fill) => RING_LENGTH * (1 - fill);
+
+// The live bubble's position and ring are also written directly every frame
+// through posRef/ringRef; the values here are just the starting point.
+function Bubble({ bubble, fill = 0, effect, posRef, ringRef }) {
+  const r = RING_R;
+  const circumference = RING_LENGTH;
   return (
-    <div
-      className="bubble"
-      style={{ left: `${bubble.x}%`, bottom: `calc(${bubble.y} * (100% - ${BUBBLE_SIZE}px))` }}
-    >
+    <div ref={posRef} className="bubble" style={{ left: `${bubble.x}%`, bottom: bubbleBottom(bubble.y) }}>
       <div
         className={`bubble-body tint-${bubble.target.tint}${bubble.charged ? " is-charged" : ""}${
           effect ? ` is-${effect}` : ""
@@ -40,12 +43,13 @@ function Bubble({ bubble, level = 0, effect }) {
         <svg viewBox="0 0 112 112" aria-hidden="true">
           <circle cx="56" cy="56" r={r} className="bubble-track" />
           <circle
+            ref={ringRef}
             cx="56"
             cy="56"
             r={r}
             className="bubble-ring"
             strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - fill)}
+            strokeDashoffset={ringOffset(effect ? 1 : fill)}
             transform="rotate(-90 56 56)"
           />
         </svg>
@@ -56,10 +60,12 @@ function Bubble({ bubble, level = 0, effect }) {
   );
 }
 
-function SqueezeMeter({ level, target }) {
+const meterHeight = (level) => `${Math.min(1, level) * 100}%`;
+
+function SqueezeMeter({ level, target, fillRef }) {
   return (
     <div className="squeeze-meter" aria-hidden="true">
-      <div className="squeeze-fill" style={{ height: `${Math.min(1, level) * 100}%` }} />
+      <div ref={fillRef} className="squeeze-fill" style={{ height: meterHeight(level) }} />
       {target !== undefined && <div className="squeeze-goal" style={{ bottom: `${target * 100}%` }} />}
     </div>
   );
@@ -87,20 +93,19 @@ function HoldButton({ held }) {
   );
 }
 
-export default function SqueezePop({ sensor, demoMode, onExit, onGoToDevice }) {
+export default function SqueezePop({ connectionState, readingRef: reading, demoMode, onExit, onGoToDevice }) {
   const [phase, setPhase] = useState("intro"); // intro | calibrate | playing | done
   const [view, setView] = useState(null);
   const [result, setResult] = useState(null);
   const [calFailed, setCalFailed] = useState(false);
 
-  const reading = useRef(sensor.reading);
   const held = useRef(false);
   const demoPsi = useRef(0);
-  useEffect(() => {
-    reading.current = sensor.reading;
-  }, [sensor.reading]);
+  const meterFillRef = useRef(null);
+  const bubblePosRef = useRef(null);
+  const bubbleRingRef = useRef(null);
 
-  const connected = sensor.connectionState === "connected";
+  const connected = connectionState === "connected";
   const canStart = demoMode || connected;
   const hasCalibration = getCalibration(demoMode) !== null;
 
@@ -113,7 +118,7 @@ export default function SqueezePop({ sensor, demoMode, onExit, onGoToDevice }) {
         : Math.max(0, p - DEMO_FALL * dt);
       return demoPsi.current;
     },
-    [demoMode]
+    [demoMode, reading]
   );
 
   // Space bar squeezes in demo mode. Only swallowed while a round is
@@ -154,7 +159,7 @@ export default function SqueezePop({ sensor, demoMode, onExit, onGoToDevice }) {
     const minRange = demoMode ? MIN_RANGE.demo : MIN_RANGE.real;
 
     const step = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
       last = now;
       const psi = readPsi(dt);
       const t = (now - startedAt) / 1000;
@@ -233,7 +238,7 @@ export default function SqueezePop({ sensor, demoMode, onExit, onGoToDevice }) {
     let last = performance.now();
 
     const step = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
       last = now;
       g.elapsed += dt;
 
@@ -283,15 +288,39 @@ export default function SqueezePop({ sensor, demoMode, onExit, onGoToDevice }) {
         }
       }
 
-      setView({
-        level,
-        bubble: g.bubble && { ...g.bubble },
-        effects: g.effects.slice(),
-        resolved: g.resolved,
-        resting: g.resting,
-      });
+      // Continuous visuals: written straight to the page every frame, so the
+      // bar and ring track the squeeze exactly without waiting on React.
+      const fill = g.bubble ? Math.min(1, level / g.bubble.target.level) : 0;
+      if (meterFillRef.current) meterFillRef.current.style.height = meterHeight(level);
+      if (g.bubble && bubblePosRef.current) {
+        bubblePosRef.current.style.bottom = bubbleBottom(g.bubble.y);
+        bubbleRingRef.current?.setAttribute("stroke-dashoffset", ringOffset(fill));
+      }
+
+      // Discrete changes (new bubble, filled, popped, rest countdown) are the
+      // only things that re-render through React -- a few times a second.
+      const restSeconds = Math.ceil(g.resting);
+      const signature = [
+        g.bubble?.id,
+        g.bubble?.charged,
+        g.resolved,
+        restSeconds,
+        g.effects.map((e) => e.id).join(","),
+      ].join("|");
+      if (signature !== lastSignature) {
+        lastSignature = signature;
+        setView({
+          level,
+          fill,
+          bubble: g.bubble && { ...g.bubble },
+          effects: g.effects.slice(),
+          resolved: g.resolved,
+          restSeconds,
+        });
+      }
       raf = requestAnimationFrame(step);
     };
+    let lastSignature = null;
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [phase, readPsi, demoMode, finish]);
@@ -308,7 +337,7 @@ export default function SqueezePop({ sensor, demoMode, onExit, onGoToDevice }) {
   const playing = phase === "playing" && view?.effects !== undefined;
   const instruction = !playing
     ? ""
-    : view.resting > 0
+    : view.restSeconds > 0
       ? "Relax your hand for a moment."
       : view.bubble
         ? view.bubble.charged
@@ -341,10 +370,18 @@ export default function SqueezePop({ sensor, demoMode, onExit, onGoToDevice }) {
             {view.effects.map((e) => (
               <Bubble key={`fx-${e.id}`} bubble={e} effect={e.kind} />
             ))}
-            {view.bubble && <Bubble key={view.bubble.id} bubble={view.bubble} level={view.level} />}
-            <SqueezeMeter level={view.level} target={view.bubble?.target.level} />
-            {view.resting > 0 && (
-              <div className="rest-chip">Nice work! Relax your hand… {Math.ceil(view.resting)}</div>
+            {view.bubble && (
+              <Bubble
+                key={view.bubble.id}
+                bubble={view.bubble}
+                fill={view.fill}
+                posRef={bubblePosRef}
+                ringRef={bubbleRingRef}
+              />
+            )}
+            <SqueezeMeter level={view.level} target={view.bubble?.target.level} fillRef={meterFillRef} />
+            {view.restSeconds > 0 && (
+              <div className="rest-chip">Nice work! Relax your hand… {view.restSeconds}</div>
             )}
           </>
         )}

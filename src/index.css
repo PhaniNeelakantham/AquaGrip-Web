@@ -862,7 +862,6 @@ p {
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--tile-games-from), var(--teal));
-  transition: width 90ms linear;
 }
 
 .meter-head .link-btn {
@@ -915,7 +914,6 @@ p {
   right: 0;
   border-radius: 999px;
   background: color-mix(in srgb, var(--tile-progress-from) 45%, transparent);
-  transition: top 90ms linear, bottom 90ms linear;
 }
 
 .axis-knob {
@@ -928,7 +926,6 @@ p {
   border: 3px solid var(--surface);
   box-shadow: var(--shadow);
   transform: translate(-50%, 50%);
-  transition: bottom 90ms linear;
 }
 
 .axis-label {
@@ -1421,7 +1418,6 @@ button.game-card:hover {
   stroke: var(--icon);
   stroke-width: 6;
   stroke-linecap: round;
-  transition: stroke-dashoffset 80ms linear;
 }
 
 .bubble-label {
@@ -1488,7 +1484,6 @@ button.game-card:hover {
   bottom: 0;
   border-radius: 999px;
   background: linear-gradient(0deg, var(--teal), var(--tile-games-from));
-  transition: height 60ms linear;
 }
 
 .squeeze-goal {
