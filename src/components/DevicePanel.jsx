@@ -1,16 +1,39 @@
-import { Bluetooth } from "lucide-react";
+import { useState } from "react";
+import { Bluetooth, Crosshair } from "lucide-react";
+import { angleDelta, toAngles } from "../ble/orientation";
 
 const MAX_METER_PSI = 12;
+const AXIS_RANGE_DEG = 90;
 
-function tiltDegrees({ qw, qx, qy, qz }) {
-  const sinPitch = 2 * (qw * qy - qz * qx);
-  return (Math.asin(Math.max(-1, Math.min(1, sinPitch))) * 180) / Math.PI;
+const AXES = [
+  { key: "pitch", label: "Tilt", hint: "up / down" },
+  { key: "roll", label: "Roll", hint: "palm turn" },
+  { key: "yaw", label: "Twist", hint: "side to side" },
+];
+
+// Vertical slider: knob sits in the middle at 0°, moves up for positive.
+function AxisBar({ label, hint, degrees }) {
+  const clamped = Math.max(-AXIS_RANGE_DEG, Math.min(AXIS_RANGE_DEG, degrees));
+  const pct = 50 + (clamped / AXIS_RANGE_DEG) * 50;
+  return (
+    <div className="axis" role="meter" aria-label={`${label} ${Math.round(degrees)} degrees`}
+      aria-valuemin={-AXIS_RANGE_DEG} aria-valuemax={AXIS_RANGE_DEG} aria-valuenow={Math.round(clamped)}>
+      <strong className="axis-value">{Math.round(degrees)}°</strong>
+      <div className="axis-track">
+        <div className="axis-center" />
+        <div className="axis-fill" style={{ bottom: `${Math.min(pct, 50)}%`, top: `${100 - Math.max(pct, 50)}%` }} />
+        <div className="axis-knob" style={{ bottom: `${pct}%` }} />
+      </div>
+      <div className="axis-label">{label}</div>
+      <div className="axis-hint">{hint}</div>
+    </div>
+  );
 }
 
 function LiveMeters({ reading }) {
+  const [center, setCenter] = useState({ pitch: 0, roll: 0, yaw: 0 });
   const squeezePct = Math.min(1, Math.max(0, reading.forcePsi / MAX_METER_PSI)) * 100;
-  const tilt = tiltDegrees(reading);
-  const tiltPct = 50 + Math.max(-45, Math.min(45, tilt)) * (50 / 45);
+  const angles = toAngles(reading);
 
   return (
     <div className="meters">
@@ -25,12 +48,15 @@ function LiveMeters({ reading }) {
       </div>
       <div>
         <div className="meter-head">
-          <span>Wrist tilt</span>
-          <strong>{Math.round(tilt)}°</strong>
+          <span>Wrist movement</span>
+          <button className="link-btn" onClick={() => setCenter(angles)}>
+            <Crosshair size={14} aria-hidden="true" /> Set as center
+          </button>
         </div>
-        <div className="tilt-track">
-          <div className="tilt-center" />
-          <div className="tilt-knob" style={{ left: `${tiltPct}%` }} />
+        <div className="axes">
+          {AXES.map(({ key, label, hint }) => (
+            <AxisBar key={key} label={label} hint={hint} degrees={angleDelta(angles[key], center[key])} />
+          ))}
         </div>
       </div>
     </div>
