@@ -3,6 +3,7 @@ import { Bluetooth, Crosshair } from "lucide-react";
 import { angleDelta, toAngles } from "../ble/orientation";
 import { getCalibration } from "../data/gripCalibration";
 import { ZERO_READING } from "../ble/useAquaGripSensor";
+import ConnectionDetails from "./ConnectionDetails";
 
 const MAX_METER_PSI = 12;
 const AXIS_RANGE_DEG = 90;
@@ -97,8 +98,8 @@ export default function DevicePanel({ sensor, demoMode, onDemoModeChange }) {
       : "Turn on your AquaGrip, then tap Connect.";
 
   return (
-    <section className="card" aria-live="polite">
-      <div className="device-head">
+    <section className="card">
+      <div className="device-head" aria-live="polite">
         <div className={`device-badge${connected ? " is-on" : ""}`}>
           <Bluetooth size={24} aria-hidden="true" />
         </div>
@@ -135,6 +136,13 @@ export default function DevicePanel({ sensor, demoMode, onDemoModeChange }) {
           />
         </label>
       </div>
+
+      <ConnectionDetails
+        diagnostics={sensor.diagnostics}
+        reading={reading}
+        status={sensor.status}
+        connectionState={connectionState}
+      />
     </section>
   );
 }

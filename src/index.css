@@ -1636,3 +1636,101 @@ button.game-card:hover {
   padding: 9px 16px;
 }
 
+
+/* ---------- connection details (diagnostics) ---------- */
+.diag {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.diag summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--ink-2);
+  list-style: none;
+}
+
+.diag summary::-webkit-details-marker {
+  display: none;
+}
+
+.diag-badge {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.diag-badge.is-ok { color: var(--good); background: var(--good-bg); }
+.diag-badge.is-warn { color: var(--icon-butter); background: var(--tint-butter); }
+
+.diag-grid {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.diag-grid > div {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+}
+
+.diag-grid dt {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.diag-grid dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.diag-grid .mono,
+.diag-log time {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12.5px;
+}
+
+.diag-tip {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tint-butter);
+  color: var(--ink);
+}
+
+.diag-log {
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.diag-log p {
+  margin: 0 0 4px;
+}
+
+.diag-log time {
+  color: var(--ink-3);
+  margin-right: 6px;
+}
+
+.diag-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
