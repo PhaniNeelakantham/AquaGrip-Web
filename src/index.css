@@ -1709,6 +1709,7 @@ button.game-card:hover {
   padding: 9px 16px;
 }
 
+<<<<<<< HEAD
 .install-close {
   position: absolute;
   top: 6px;
@@ -1830,3 +1831,133 @@ button.game-card:hover {
   width: 120px;
   height: 64px;
 }
+=======
+
+/* ---------- connection details (diagnostics) ---------- */
+.diag {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.diag summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--ink-2);
+  list-style: none;
+}
+
+.diag summary::-webkit-details-marker {
+  display: none;
+}
+
+.diag-badge {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.diag-badge.is-ok { color: var(--good); background: var(--good-bg); }
+.diag-badge.is-warn { color: var(--icon-butter); background: var(--tint-butter); }
+
+.diag-grid {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.diag-grid > div {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+}
+
+.diag-grid dt {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.diag-grid dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.diag-grid .mono,
+.diag-log time {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12.5px;
+}
+
+.diag-tip {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tint-butter);
+  color: var(--ink);
+}
+
+.diag-log {
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.diag-log p {
+  margin: 0 0 4px;
+}
+
+.diag-log time {
+  color: var(--ink-3);
+  margin-right: 6px;
+}
+
+.diag-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+/* ---------- connection method toggle ---------- */
+.transport {
+  margin-top: 16px;
+}
+
+.segmented--small {
+  box-shadow: none;
+  background: var(--surface-2);
+}
+
+.segmented--small button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  font-size: 14px;
+}
+
+.segmented--small button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.transport-note {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+>>>>>>> f24868550a0b3e05605d0bf50b57d737515295a1

@@ -23,3 +23,37 @@ const textDecoder = new TextDecoder();
 export function decodeStatus(dataView) {
   return textDecoder.decode(dataView);
 }
+
+// ---- USB (serial) ----
+// The firmware also prints every reading over USB at 115200 baud as a text
+// line "force_psi,qw,qx,qy,qz", plus "STATUS,..." lines and a header row.
+export const SERIAL_BAUD = 115200;
+
+// Serial STATUS names -> the short codes the Bluetooth status channel uses.
+const SERIAL_STATUS_CODES = {
+  BOOT: "BOOT",
+  MPRLS_OK: "MPR_OK",
+  BNO085_OK: "BNO_OK",
+  RETRY_INIT: "RETRY",
+  BNO085_RESET: "BNO_RESET",
+  BLE_CONNECTED: "BLE_CONN",
+  BLE_DISCONNECTED: "BLE_DISC",
+};
+
+// Returns { type: "data", reading } | { type: "status", code, text } |
+// { type: "header" } | null (not ours, e.g. boot noise).
+export function parseSerialLine(line) {
+  const text = line.trim();
+  if (!text) return null;
+  if (text.startsWith("force_psi,")) return { type: "header" }; // the firmware's column names
+  if (text.startsWith("STATUS,")) {
+    const name = text.split(",")[1] ?? "";
+    return { type: "status", code: SERIAL_STATUS_CODES[name] ?? name, text };
+  }
+  const parts = text.split(",");
+  if (parts.length !== 5) return null;
+  const nums = parts.map(Number);
+  if (!nums.every(Number.isFinite)) return null; // e.g. the header row
+  const [forcePsi, qw, qx, qy, qz] = nums;
+  return { type: "data", reading: { forcePsi, qw, qx, qy, qz } };
+}

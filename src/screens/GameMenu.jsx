@@ -32,7 +32,7 @@ function GameCardBody({ game }) {
   );
 }
 
-export default function GameMenu({ sensor, demoMode, onDemoModeChange, onPlay }) {
+export default function GameMenu({ sensor, demoMode, onDemoModeChange, transport, onTransportChange, onPlay }) {
   return (
     <>
       <header className="screen-header">
@@ -41,7 +41,13 @@ export default function GameMenu({ sensor, demoMode, onDemoModeChange, onPlay })
         <p className="subtitle">Short, fun exercises for your hand and wrist.</p>
       </header>
 
-      <DevicePanel sensor={sensor} demoMode={demoMode} onDemoModeChange={onDemoModeChange} />
+      <DevicePanel
+        sensor={sensor}
+        demoMode={demoMode}
+        onDemoModeChange={onDemoModeChange}
+        transport={transport}
+        onTransportChange={onTransportChange}
+      />
 
       <h2 className="section-title">
         All games
