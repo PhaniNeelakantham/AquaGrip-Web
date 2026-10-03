@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bluetooth, Crosshair } from "lucide-react";
 import { angleDelta, toAngles } from "../ble/orientation";
 import { getCalibration } from "../data/gripCalibration";
+import { ZERO_READING } from "../ble/useAquaGripSensor";
 
 const MAX_METER_PSI = 12;
 const AXIS_RANGE_DEG = 90;
@@ -36,11 +37,12 @@ function AxisBar({ label, hint, degrees }) {
 // otherwise the lowest reading seen since connecting.
 function LiveMeters({ reading, demoMode }) {
   const [center, setCenter] = useState({ pitch: 0, roll: 0, yaw: 0 });
-  const [lowest, setLowest] = useState(reading.forcePsi);
-  if (reading.forcePsi < lowest) setLowest(reading.forcePsi);
+  const [lowest, setLowest] = useState(null);
+  const isRealSample = reading !== ZERO_READING;
+  if (isRealSample && (lowest === null || reading.forcePsi < lowest)) setLowest(reading.forcePsi);
 
   const calibration = demoMode ? null : getCalibration(false);
-  const restPsi = calibration?.restPsi ?? lowest;
+  const restPsi = calibration?.restPsi ?? lowest ?? reading.forcePsi;
   const spanPsi = calibration ? calibration.maxPsi - calibration.restPsi : MAX_METER_PSI;
   const squeezePsi = Math.max(0, reading.forcePsi - restPsi);
   const squeezePct = Math.min(1, squeezePsi / spanPsi) * 100;
