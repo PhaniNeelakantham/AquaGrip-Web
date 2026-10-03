@@ -48,9 +48,10 @@ function App() {
         <Game
           connectionState={sensor.connectionState}
           readingRef={sensor.readingRef}
+          lastDataAtRef={sensor.lastDataAtRef}
           demoMode={demoMode}
           onExit={leaveGame}
-          onGoToDevice={leaveGame}
+          onReconnect={sensor.connect}
         />
       </main>
     );

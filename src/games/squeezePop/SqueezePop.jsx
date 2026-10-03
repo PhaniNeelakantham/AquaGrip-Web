@@ -3,6 +3,8 @@ import { Check, CircleDot, Hand, PartyPopper, Repeat, Trophy, X } from "lucide-r
 import { addSession } from "../../data/sessionStore";
 import { getCalibration, saveCalibration } from "../../data/gripCalibration";
 import { TARGETS, createRepCounter, stepBubble, toLevel, REP_LOW } from "./logic";
+import { useDevicePause } from "../useDevicePause";
+import ConnectionPause from "../ConnectionPause";
 
 const TOTAL_BUBBLES = 15;
 const RISE_SECONDS = 9;
@@ -93,11 +95,30 @@ function HoldButton({ held }) {
   );
 }
 
-export default function SqueezePop({ connectionState, readingRef: reading, demoMode, onExit, onGoToDevice }) {
+export default function SqueezePop({
+  connectionState,
+  readingRef: reading,
+  lastDataAtRef,
+  demoMode,
+  onExit,
+  onReconnect,
+}) {
   const [phase, setPhase] = useState("intro"); // intro | calibrate | playing | done
   const [view, setView] = useState(null);
   const [result, setResult] = useState(null);
-  const [calFailed, setCalFailed] = useState(false);
+  const [calFailed, setCalFailed] = useState(null); // null | "squeeze" | "connection"
+  const link = useDevicePause({
+    active: phase === "playing" || phase === "calibrate",
+    demoMode,
+    connectionState,
+    lastDataAtRef,
+  });
+
+  // A grip check interrupted by a dropped link can't be trusted: cancel it.
+  if (phase === "calibrate" && link.paused) {
+    setPhase("intro");
+    setCalFailed("connection");
+  }
 
   const held = useRef(false);
   const demoPsi = useRef(0);
@@ -182,7 +203,7 @@ export default function SqueezePop({ connectionState, readingRef: reading, demoM
           setView(null);
           setPhase("playing");
         } else {
-          setCalFailed(true);
+          setCalFailed("squeeze");
           setPhase("intro");
         }
         return;
@@ -240,6 +261,10 @@ export default function SqueezePop({ connectionState, readingRef: reading, demoM
     const step = (now) => {
       const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
       last = now;
+      if (link.pausedRef.current) {
+        raf = requestAnimationFrame(step); // frozen in place until Resume
+        return;
+      }
       g.elapsed += dt;
 
       const psi = readPsi(dt);
@@ -323,12 +348,13 @@ export default function SqueezePop({ connectionState, readingRef: reading, demoM
     let lastSignature = null;
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [phase, readPsi, demoMode, finish]);
+  }, [phase, readPsi, demoMode, finish, link.pausedRef]);
 
   const begin = (forceCalibrate) => {
     held.current = false;
     demoPsi.current = 0;
-    setCalFailed(false);
+    link.resume(); // clear any pause left over from an interrupted grip check
+    setCalFailed(null);
     setResult(null);
     setView(null);
     setPhase(forceCalibrate || !getCalibration(demoMode) ? "calibrate" : "playing");
@@ -401,10 +427,15 @@ export default function SqueezePop({ connectionState, readingRef: reading, demoM
                 <li>Then relax your hand to pop it.</li>
                 <li>Pop {TOTAL_BUBBLES} bubbles. No rush: missed ones just float away.</li>
               </ol>
-              {calFailed && (
+              {calFailed === "squeeze" && (
                 <p className="overlay-note overlay-note--warn">
                   We couldn't feel a squeeze. {demoMode ? "Hold the button longer" : "Check the grip is connected"} and
                   try again.
+                </p>
+              )}
+              {calFailed === "connection" && (
+                <p className="overlay-note overlay-note--warn">
+                  AquaGrip disconnected during the grip check. Reconnect and try again.
                 </p>
               )}
               {!hasCalibration && canStart && (
@@ -426,12 +457,27 @@ export default function SqueezePop({ connectionState, readingRef: reading, demoM
                   )}
                 </>
               ) : (
-                <button className="btn btn-primary btn-block" onClick={onGoToDevice}>
-                  Connect device
+                <button
+                  className="btn btn-primary btn-block"
+                  onClick={onReconnect}
+                  disabled={connectionState === "connecting"}
+                >
+                  {connectionState === "connecting" ? "Connecting…" : "Connect device"}
                 </button>
               )}
             </div>
           </div>
+        )}
+
+        {phase === "playing" && link.paused && (
+          <ConnectionPause
+            lost={link.lost}
+            connecting={connectionState === "connecting"}
+            readyHint="Relax your hand."
+            onReconnect={onReconnect}
+            onResume={link.resume}
+            onEnd={onExit}
+          />
         )}
 
         {phase === "calibrate" && view?.calStep && (

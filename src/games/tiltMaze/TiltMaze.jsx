@@ -4,6 +4,8 @@ import { angleDelta, toAngles } from "../../ble/orientation";
 import { addSession } from "../../data/sessionStore";
 import { useElementWidth } from "../../hooks/useElementWidth";
 import { generateMaze, resolveCollisions, wallRects } from "./maze";
+import { useDevicePause } from "../useDevicePause";
+import ConnectionPause from "../ConnectionPause";
 
 const COLS = 6;
 const ROWS = 8;
@@ -89,8 +91,16 @@ function ArrowPad({ held }) {
   );
 }
 
-export default function TiltMaze({ connectionState, readingRef: reading, demoMode, onExit, onGoToDevice }) {
+export default function TiltMaze({
+  connectionState,
+  readingRef: reading,
+  lastDataAtRef,
+  demoMode,
+  onExit,
+  onReconnect,
+}) {
   const [phase, setPhase] = useState("intro"); // intro | playing | done
+  const link = useDevicePause({ active: phase === "playing", demoMode, connectionState, lastDataAtRef });
   const [maze, setMaze] = useState(() => generateMaze(COLS, ROWS));
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState(null);
@@ -220,26 +230,6 @@ export default function TiltMaze({ connectionState, readingRef: reading, demoMod
     };
   }, [demoMode]);
 
-  // Current tilt in degrees: x > 0 = right, y > 0 = down.
-  const readTilt = useCallback(
-    (dt) => {
-      if (demoMode) {
-        const k = keyTilt.current;
-        const h = held.current;
-        const targetX = (h.has("right") ? MAX_TILT : 0) - (h.has("left") ? MAX_TILT : 0);
-        const targetY = (h.has("down") ? MAX_TILT : 0) - (h.has("up") ? MAX_TILT : 0);
-        const step = KEY_RAMP * dt;
-        k.x += Math.max(-step, Math.min(step, targetX - k.x));
-        k.y += Math.max(-step, Math.min(step, targetY - k.y));
-        return { x: k.x, y: k.y };
-      }
-      const angles = toAngles(reading.current);
-      const axis = (m) => angleDelta(angles[m.axis], center.current[m.axis]) * m.sign;
-      return { x: axis(AXIS_MAP.x), y: axis(AXIS_MAP.y) };
-    },
-    [demoMode, reading]
-  );
-
   const finish = useCallback(
     (timeS) => {
       const rg = range.current;
@@ -266,12 +256,34 @@ export default function TiltMaze({ connectionState, readingRef: reading, demoMod
     if (phase !== "playing") return;
     let raf;
     let last = performance.now();
-    const startedAt = last;
+    let seconds = 0; // time actually played: paused or off-screen time doesn't count
     let lastUi = 0;
+
+    // Current tilt in degrees: x > 0 = right, y > 0 = down.
+    const readTilt = (dt) => {
+      if (demoMode) {
+        const k = keyTilt.current;
+        const h = held.current;
+        const targetX = (h.has("right") ? MAX_TILT : 0) - (h.has("left") ? MAX_TILT : 0);
+        const targetY = (h.has("down") ? MAX_TILT : 0) - (h.has("up") ? MAX_TILT : 0);
+        const ramp = KEY_RAMP * dt;
+        k.x += Math.max(-ramp, Math.min(ramp, targetX - k.x));
+        k.y += Math.max(-ramp, Math.min(ramp, targetY - k.y));
+        return { x: k.x, y: k.y };
+      }
+      const angles = toAngles(reading.current);
+      const axis = (m) => angleDelta(angles[m.axis], center.current[m.axis]) * m.sign;
+      return { x: axis(AXIS_MAP.x), y: axis(AXIS_MAP.y) };
+    };
 
     const step = (now) => {
       const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
       last = now;
+      if (link.pausedRef.current) {
+        raf = requestAnimationFrame(step);
+        return;
+      }
+      seconds += dt;
 
       const tilt = readTilt(dt);
       const rg = range.current;
@@ -294,7 +306,6 @@ export default function TiltMaze({ connectionState, readingRef: reading, demoMod
         indicatorRef.current.style.transform = `translate(${clamp(tilt.x) * 22}px, ${clamp(tilt.y) * 22}px)`;
       }
 
-      const seconds = (now - startedAt) / 1000;
       if (Math.hypot(b.x - (COLS - 0.5), b.y - (ROWS - 0.5)) < GOAL_RADIUS) {
         finish(Math.round(seconds));
         return;
@@ -307,7 +318,15 @@ export default function TiltMaze({ connectionState, readingRef: reading, demoMod
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [phase, readTilt, rects, draw, finish]);
+  }, [phase, demoMode, reading, rects, draw, finish, link.pausedRef]);
+
+  // After a reconnect the hand may have moved, so "level" is wherever it is now.
+  const resumeAfterReconnect = () => {
+    center.current = toAngles(reading.current);
+    ball.current.vx = 0;
+    ball.current.vy = 0;
+    link.resume();
+  };
 
   const start = (newMaze) => {
     if (newMaze) setMaze(generateMaze(COLS, ROWS));
@@ -362,12 +381,27 @@ export default function TiltMaze({ connectionState, readingRef: reading, demoMod
                   Start
                 </button>
               ) : (
-                <button className="btn btn-primary btn-block" onClick={onGoToDevice}>
-                  Connect device
+                <button
+                  className="btn btn-primary btn-block"
+                  onClick={onReconnect}
+                  disabled={connectionState === "connecting"}
+                >
+                  {connectionState === "connecting" ? "Connecting…" : "Connect device"}
                 </button>
               )}
             </div>
           </div>
+        )}
+
+        {link.paused && (
+          <ConnectionPause
+            lost={link.lost}
+            connecting={connectionState === "connecting"}
+            readyHint="Hold your hand level."
+            onReconnect={onReconnect}
+            onResume={resumeAfterReconnect}
+            onEnd={onExit}
+          />
         )}
 
         {phase === "done" && result && (
