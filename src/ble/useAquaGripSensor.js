@@ -4,8 +4,10 @@ import {
   SERVICE_UUID,
   DATA_CHAR_UUID,
   STATUS_CHAR_UUID,
+  SERIAL_BAUD,
   decodeReading,
   decodeStatus,
+  parseSerialLine,
 } from "./protocol";
 import { startMockReadings } from "./mockReadings";
 
@@ -22,20 +24,47 @@ const toHex = (dv) =>
   Array.from(new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength), (b) => b.toString(16).padStart(2, "0")).join(" ");
 const errText = (err) => (err instanceof Error ? err.message : String(err));
 
-function freshCounters() {
-  return { packets: 0, times: [], lastAt: 0, lastLength: null, lastBytes: "", shortPackets: 0, mode: null };
+const CONNECT_ATTEMPTS = 3;
+
+// Android often drops a brand-new BLE link a moment after it opens (the
+// infamous "GATT error 133"), surfacing as "GATT Server is disconnected"
+// while looking up services. A short pause and another try usually works.
+async function connectWithRetry(device, log) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const server = await device.gatt.connect();
+      log(attempt === 1 ? "Connected to the device." : `Connected on try ${attempt}.`);
+      await sleep(300); // give Android a moment to settle the new link
+      if (!device.gatt.connected) throw new Error("The link dropped right after connecting.");
+      return await server.getPrimaryService(SERVICE_UUID);
+    } catch (err) {
+      if (attempt >= CONNECT_ATTEMPTS) throw err;
+      log(`Try ${attempt} failed (${errText(err)}). Retrying…`);
+      if (device.gatt.connected) device.gatt.disconnect();
+      await sleep(600 * attempt);
+    }
+  }
 }
 
-// Talks to the AquaGrip ESP32 over Web Bluetooth, or (with mock: true)
-// generates a fake reading stream instead -- both paths expose the exact
-// same shape, so game/tracker code never needs to know which one is active.
-export function useAquaGripSensor({ mock = false } = {}) {
+function freshCounters() {
+  return { packets: 0, times: [], lastAt: 0, lastLength: null, lastBytes: "", shortPackets: 0, ignoredLines: 0, mode: null };
+}
+
+const hex4 = (n) => `0x${n.toString(16).padStart(4, "0")}`;
+
+// Talks to the AquaGrip ESP32 over Web Bluetooth or a USB cable (Web
+// Serial), or with mock: true generates a fake reading stream instead.
+// Every path exposes the exact same shape, so game/tracker code never needs
+// to know which one is active.
+export function useAquaGripSensor({ mock = false, transport = "ble" } = {}) {
   const [connectionState, setConnectionState] = useState("disconnected"); // disconnected | connecting | connected
   const [reading, setReading] = useState(ZERO_READING);
   const [status, setStatus] = useState("");
   const [error, setError] = useState(null);
 
   const deviceRef = useRef(null);
+  const portRef = useRef(null); // USB port to reopen without the picker
+  const serialRef = useRef(null); // { port, reader, piped } while USB is open
   const stopMockRef = useRef(null);
   // Games read the newest sample from this ref every animation frame, so
   // they never wait for (or trigger) a React re-render to get sensor data.
@@ -112,8 +141,71 @@ export function useAquaGripSensor({ mock = false } = {}) {
     [publish, stopPolling, log]
   );
 
+  // USB: one text line from the firmware's serial output.
+  const handleSerialLine = useCallback(
+    (line) => {
+      const parsed = parseSerialLine(line);
+      const c = countersRef.current;
+      if (!parsed) {
+        if (line.trim() && ++c.ignoredLines <= 3) log(`Ignored a line that isn't sensor data: "${line.trim().slice(0, 60)}"`);
+        return;
+      }
+      if (parsed.type === "header") return;
+      if (parsed.type === "status") {
+        setStatus(parsed.code);
+        log(`Device says: ${parsed.text}`);
+        return;
+      }
+      c.lastBytes = line.trim();
+      c.lastLength = null;
+      publish(parsed.reading);
+    },
+    [publish, log]
+  );
+
+  // Close the USB port. Order matters: cancel the reader, let the pipe
+  // finish, then close the port (it can't close while still being read).
+  const closeSerial = useCallback(async () => {
+    const s = serialRef.current;
+    serialRef.current = null;
+    if (!s) return;
+    await s.reader.cancel().catch(() => {});
+    await s.piped.catch(() => {});
+    await s.port.close().catch(() => {});
+  }, []);
+
+  const readSerial = useCallback(
+    async (port, attempt) => {
+      const decoder = new TextDecoderStream();
+      const piped = port.readable.pipeTo(decoder.writable);
+      const reader = decoder.readable.getReader();
+      serialRef.current = { port, reader, piped };
+      let buffer = "";
+      try {
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += value;
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop();
+          lines.forEach(handleSerialLine);
+        }
+      } catch (err) {
+        if (attempt === attemptRef.current) log(`USB read stopped: ${errText(err)}`);
+      }
+      // Still the active attempt => the stream ended on its own (unplugged).
+      if (attempt === attemptRef.current) {
+        await closeSerial();
+        portRef.current = null; // a replugged board is a new port object
+        log("USB connection lost. Was the cable unplugged?");
+        setConnectionState("disconnected");
+      }
+    },
+    [handleSerialLine, closeSerial, log]
+  );
+
   const disconnect = useCallback(() => {
-    attemptRef.current++; // cancel any pending "is data arriving?" check
+    attemptRef.current++; // cancel pending checks and mark USB closes as intentional
     stopPolling();
     if (stopMockRef.current) {
       stopMockRef.current();
@@ -123,8 +215,10 @@ export function useAquaGripSensor({ mock = false } = {}) {
       deviceRef.current.gatt.disconnect();
     }
     deviceRef.current = null;
+    closeSerial();
+    portRef.current = null;
     setConnectionState("disconnected");
-  }, [stopPolling]);
+  }, [stopPolling, closeSerial]);
 
   // Stable listeners, so reconnecting can remove the old ones first and a
   // characteristic never ends up delivering each sample twice.
@@ -183,6 +277,55 @@ export function useAquaGripSensor({ mock = false } = {}) {
       return;
     }
 
+    if (transport === "usb") {
+      if (!navigator.serial) {
+        setError("A USB connection needs Chrome or Edge on a computer.");
+        log("This browser can't use USB devices. Use Chrome or Edge on a computer.");
+        return;
+      }
+      await closeSerial();
+      const reusing = portRef.current !== null;
+      try {
+        setConnectionState("connecting");
+        let port = portRef.current;
+        if (!port) {
+          // A port allowed before (e.g. after unplugging and replugging) can
+          // be reopened without asking again, as long as it's the only one.
+          const granted = await navigator.serial.getPorts();
+          if (granted.length === 1) {
+            port = granted[0];
+            log("Using the USB port you picked before.");
+          } else {
+            log("Choose the AquaGrip's USB port…");
+            port = await navigator.serial.requestPort();
+          }
+          portRef.current = port;
+          const info = port.getInfo?.() ?? {};
+          if (info.usbVendorId) {
+            log(`USB device: vendor ${hex4(info.usbVendorId)}, product ${hex4(info.usbProductId ?? 0)}.`);
+          }
+        }
+        await port.open({ baudRate: SERIAL_BAUD });
+        countersRef.current.mode = "usb";
+        log(`USB port open at ${SERIAL_BAUD} baud. Waiting for data…`);
+        setStatus("");
+        setConnectionState("connected");
+        readSerial(port, attempt);
+      } catch (err) {
+        if (reusing) portRef.current = null;
+        const msg = errText(err);
+        const busy = /open|in use|access/i.test(msg) && err?.name !== "NotFoundError";
+        setError(
+          busy
+            ? "Couldn't open the USB port. Close the Arduino Serial Monitor (only one program can use the port at a time), then try again."
+            : msg
+        );
+        log(`Error: ${msg}`);
+        setConnectionState("disconnected");
+      }
+      return;
+    }
+
     if (!navigator.bluetooth) {
       setError("Web Bluetooth isn't available in this browser. Use Chrome or Edge.");
       log("This browser has no Web Bluetooth. Use Chrome or Edge.");
@@ -210,9 +353,7 @@ export function useAquaGripSensor({ mock = false } = {}) {
       device.removeEventListener("gattserverdisconnected", onDrop);
       device.addEventListener("gattserverdisconnected", onDrop);
 
-      const server = await device.gatt.connect();
-      log("Connected to the device.");
-      const service = await server.getPrimaryService(SERVICE_UUID);
+      const service = await connectWithRetry(device, log);
       log("Found the AquaGrip service.");
 
       const dataChar = await service.getCharacteristic(DATA_CHAR_UUID);
@@ -255,7 +396,7 @@ export function useAquaGripSensor({ mock = false } = {}) {
       log(`Error: ${errText(err)}`);
       setConnectionState("disconnected");
     }
-  }, [mock, publish, onData, onStatus, onDrop, log, stopPolling, startPolling]);
+  }, [mock, transport, publish, onData, onStatus, onDrop, log, stopPolling, startPolling, closeSerial, readSerial]);
 
   // Disconnect cleanly if the component using this hook unmounts.
   useEffect(() => disconnect, [disconnect]);

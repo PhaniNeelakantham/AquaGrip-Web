@@ -9,6 +9,17 @@ import ProgressTracker from "./screens/ProgressTracker";
 import TiltMaze from "./games/tiltMaze/TiltMaze";
 import SqueezePop from "./games/squeezePop/SqueezePop";
 
+const TRANSPORT_KEY = "aquagrip.transport";
+
+// "ble" (Bluetooth) or "usb" (cable, Chrome/Edge on a computer).
+function loadTransport() {
+  try {
+    return localStorage.getItem(TRANSPORT_KEY) === "usb" ? "usb" : "ble";
+  } catch {
+    return "ble";
+  }
+}
+
 // Memoized so the sensor's ~50 updates per second don't re-render a game;
 // games read live data from `readingRef` inside their own frame loop.
 const GAME_SCREENS = {
@@ -20,7 +31,8 @@ function App() {
   const [tab, setTab] = useState("home");
   // Always starts off: real device + this browser's saved history.
   const [demoMode, setDemoMode] = useState(false);
-  const sensor = useAquaGripSensor({ mock: demoMode });
+  const [transport, setTransport] = useState(loadTransport);
+  const sensor = useAquaGripSensor({ mock: demoMode, transport });
   const savedSessions = useSavedSessions();
   const sessions = demoMode ? mockSessions : savedSessions;
 
@@ -32,6 +44,16 @@ function App() {
   const changeDemoMode = (next) => {
     sensor.disconnect();
     setDemoMode(next);
+  };
+
+  const changeTransport = (next) => {
+    sensor.disconnect();
+    setTransport(next);
+    try {
+      localStorage.setItem(TRANSPORT_KEY, next);
+    } catch {
+      // Storage blocked: the choice just isn't remembered next visit.
+    }
   };
 
   const [playing, setPlaying] = useState(null);
@@ -73,6 +95,8 @@ function App() {
             sensor={sensor}
             demoMode={demoMode}
             onDemoModeChange={changeDemoMode}
+            transport={transport}
+            onTransportChange={changeTransport}
             onPlay={(id) => {
               setPlaying(id);
               window.scrollTo({ top: 0 });

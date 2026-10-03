@@ -1734,3 +1734,33 @@ button.game-card:hover {
   padding: 8px 14px;
   font-size: 14px;
 }
+
+/* ---------- connection method toggle ---------- */
+.transport {
+  margin-top: 16px;
+}
+
+.segmented--small {
+  box-shadow: none;
+  background: var(--surface-2);
+}
+
+.segmented--small button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  font-size: 14px;
+}
+
+.segmented--small button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.transport-note {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ink-3);
+}

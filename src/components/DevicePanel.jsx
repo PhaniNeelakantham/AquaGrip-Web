@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bluetooth, Crosshair } from "lucide-react";
+import { Bluetooth, Crosshair, Usb } from "lucide-react";
 import { angleDelta, toAngles } from "../ble/orientation";
 import { getCalibration } from "../data/gripCalibration";
 import { ZERO_READING } from "../ble/useAquaGripSensor";
@@ -77,14 +77,35 @@ function LiveMeters({ reading, demoMode }) {
   );
 }
 
-export default function DevicePanel({ sensor, demoMode, onDemoModeChange }) {
+const usbSupported = typeof navigator !== "undefined" && "serial" in navigator;
+
+function TransportToggle({ transport, onChange }) {
+  return (
+    <div className="transport">
+      <div className="segmented segmented--small" role="group" aria-label="Connect with">
+        <button aria-pressed={transport === "ble"} onClick={() => onChange("ble")}>
+          <Bluetooth size={16} aria-hidden="true" /> Bluetooth
+        </button>
+        <button aria-pressed={transport === "usb"} onClick={() => onChange("usb")} disabled={!usbSupported}>
+          <Usb size={16} aria-hidden="true" /> USB cable
+        </button>
+      </div>
+      {!usbSupported && <p className="transport-note">USB connection needs Chrome or Edge on a computer.</p>}
+    </div>
+  );
+}
+
+export default function DevicePanel({ sensor, demoMode, onDemoModeChange, transport, onTransportChange }) {
   const { connectionState, reading, error, connect, disconnect } = sensor;
   const connected = connectionState === "connected";
+  const usb = transport === "usb";
 
   const title = connected
     ? demoMode
       ? "Demo mode is on"
-      : "AquaGrip connected"
+      : usb
+        ? "AquaGrip connected by USB"
+        : "AquaGrip connected"
     : connectionState === "connecting"
       ? "Connecting…"
       : "No device connected";
@@ -95,7 +116,9 @@ export default function DevicePanel({ sensor, demoMode, onDemoModeChange }) {
       : "Squeeze and turn your wrist. The meters will follow."
     : demoMode
       ? "Try everything with sample data. No device needed."
-      : "Turn on your AquaGrip, then tap Connect.";
+      : usb
+        ? "Plug the AquaGrip into this computer, close the Arduino Serial Monitor, then tap Connect."
+        : "Turn on your AquaGrip, then tap Connect.";
 
   return (
     <section className="card">
@@ -109,6 +132,7 @@ export default function DevicePanel({ sensor, demoMode, onDemoModeChange }) {
         </div>
       </div>
 
+      {!demoMode && <TransportToggle transport={transport} onChange={onTransportChange} />}
       {connected && <LiveMeters reading={reading} demoMode={demoMode} />}
       {error && <p className="device-error">{error}</p>}
 

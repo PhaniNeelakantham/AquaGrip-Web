@@ -9,12 +9,14 @@ const STATUS_MEANING = {
   BNO_RESET: "Motion sensor restarted",
   BLE_CONN: "Bluetooth connected",
   BLE_DISC: "Bluetooth disconnected",
+  BLE_DISABLED: "Bluetooth is turned off in the firmware (USB only)",
   MOCK: "Demo stream",
 };
 
 const MODE_LABEL = {
-  notify: "Live updates",
-  polling: "Direct reads (fallback)",
+  notify: "Bluetooth, live updates",
+  polling: "Bluetooth, direct reads (fallback)",
+  usb: "USB cable",
   demo: "Demo stream (sample data)",
 };
 
@@ -36,8 +38,13 @@ export default function ConnectionDetails({ diagnostics: d, reading, status, con
     ["Method", MODE_LABEL[d.mode] ?? "—"],
     ["Data rate", `${d.rateHz} packets / second`],
     ["Packets received", String(d.packets)],
-    ["Last packet", d.lastAgoS === null ? "none yet" : `${d.lastAgoS.toFixed(1)} s ago, ${d.lastLength ?? "?"} bytes`],
-    ["Raw bytes", d.lastBytes || "—"],
+    [
+      "Last packet",
+      d.lastAgoS === null
+        ? "none yet"
+        : `${d.lastAgoS.toFixed(1)} s ago${d.lastLength !== null ? `, ${d.lastLength} bytes` : ""}`,
+    ],
+    [d.mode === "usb" ? "Last line" : "Raw bytes", d.lastBytes || "—"],
     ["Decoded", d.packets ? decoded : "—"],
     ["Device status", statusText],
   ];
@@ -75,16 +82,16 @@ export default function ConnectionDetails({ diagnostics: d, reading, status, con
         {rows.map(([k, v]) => (
           <div key={k}>
             <dt>{k}</dt>
-            <dd className={k === "Raw bytes" || k === "Decoded" ? "mono" : undefined}>{v}</dd>
+            <dd className={["Raw bytes", "Last line", "Decoded"].includes(k) ? "mono" : undefined}>{v}</dd>
           </div>
         ))}
       </dl>
 
       {connected && !receiving && (
         <p className="diag-tip">
-          Connected, but no data is arriving. Give it a few seconds. If it stays this way: turn the phone's Bluetooth
-          off and on, press RESET on the board, then connect again. Android can remember an old version of the
-          device from before the firmware was uploaded.
+          {d.mode === "usb"
+            ? "Connected, but no data is arriving. Press RESET on the board. If it stays empty, check that \"USB CDC On Boot\" was set to Enabled when uploading the firmware."
+            : "Connected, but no data is arriving. Give it a few seconds. If it stays this way: turn Bluetooth off and on, press RESET on the board, then connect again. The computer or phone can remember an old version of the device from before the firmware was uploaded."}
         </p>
       )}
 
