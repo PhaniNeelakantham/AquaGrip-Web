@@ -1,4 +1,4 @@
-import { CircleDot, Compass, Target } from "lucide-react";
+import { CircleDot, Compass, Rocket, Target } from "lucide-react";
 
 // Game catalog. Only games with `playable: true` have been built so far.
 export const GAMES = [
@@ -20,6 +20,16 @@ export const GAMES = [
     minutes: 2,
     tint: "sky",
     icon: CircleDot,
+    playable: true,
+  },
+  {
+    id: "balloon-rescue",
+    name: "Balloon Rescue",
+    desc: "Pump up the balloon, then rotate your wrist to dodge asteroids.",
+    trains: "Grip + wrist",
+    minutes: 2,
+    tint: "peach",
+    icon: Rocket,
     playable: true,
   },
   {

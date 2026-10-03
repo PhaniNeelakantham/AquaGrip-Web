@@ -55,6 +55,7 @@ p {
       var(--desk-base);
     background-attachment: fixed;
   }
+
   #root {
     margin: 24px auto;
     min-height: calc(100svh - 48px);
@@ -74,6 +75,7 @@ p {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -81,6 +83,7 @@ p {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -266,12 +269,14 @@ p {
   background: rgba(255, 255, 255, 0.07);
   pointer-events: none;
 }
+
 .hero::before {
   width: 180px;
   height: 180px;
   right: -60px;
   top: -70px;
 }
+
 .hero::after {
   width: 110px;
   height: 110px;
@@ -480,11 +485,30 @@ p {
 }
 
 /* ---------- tints ---------- */
-.tint-lavender { --tint: var(--tint-lavender); --icon: var(--icon-lavender); }
-.tint-mint     { --tint: var(--tint-mint);     --icon: var(--icon-mint); }
-.tint-peach    { --tint: var(--tint-peach);    --icon: var(--icon-peach); }
-.tint-sky      { --tint: var(--tint-sky);      --icon: var(--icon-sky); }
-.tint-butter   { --tint: var(--tint-butter);   --icon: var(--icon-butter); }
+.tint-lavender {
+  --tint: var(--tint-lavender);
+  --icon: var(--icon-lavender);
+}
+
+.tint-mint {
+  --tint: var(--tint-mint);
+  --icon: var(--icon-mint);
+}
+
+.tint-peach {
+  --tint: var(--tint-peach);
+  --icon: var(--icon-peach);
+}
+
+.tint-sky {
+  --tint: var(--tint-sky);
+  --icon: var(--icon-sky);
+}
+
+.tint-butter {
+  --tint: var(--tint-butter);
+  --icon: var(--icon-butter);
+}
 
 /* ---------- stat tiles ---------- */
 .stats {
@@ -543,9 +567,20 @@ p {
   font-weight: 800;
 }
 
-.delta--good { color: var(--good); background: var(--good-bg); }
-.delta--bad  { color: var(--bad);  background: var(--bad-bg); }
-.delta--flat { color: var(--ink-2); background: var(--surface-2); }
+.delta--good {
+  color: var(--good);
+  background: var(--good-bg);
+}
+
+.delta--bad {
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+
+.delta--flat {
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
 
 /* ---------- segmented control ---------- */
 .segmented {
@@ -597,9 +632,20 @@ p {
   font-weight: 800;
 }
 
-.pill--good { color: var(--good); background: var(--good-bg); }
-.pill--flat { color: var(--ink-2); background: var(--surface-2); }
-.pill--low  { color: var(--icon-peach); background: var(--tint-peach); }
+.pill--good {
+  color: var(--good);
+  background: var(--good-bg);
+}
+
+.pill--flat {
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
+
+.pill--low {
+  color: var(--icon-peach);
+  background: var(--tint-peach);
+}
 
 .score-message {
   font-size: 15px;
@@ -694,7 +740,7 @@ p {
   padding: 12px 0;
 }
 
-.list-row + .list-row {
+.list-row+.list-row {
   border-top: 1px solid var(--border);
 }
 
@@ -1221,7 +1267,7 @@ p {
   color: var(--ink-2);
 }
 
-.steps li + li {
+.steps li+li {
   margin-top: 6px;
 }
 
@@ -1243,7 +1289,7 @@ p {
   margin: 16px 0 4px;
 }
 
-.result-stats > div {
+.result-stats>div {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1374,8 +1420,20 @@ button.game-card:hover {
   border: 2px solid color-mix(in srgb, var(--icon-sky) 14%, transparent);
   pointer-events: none;
 }
-.pop-decor--a { width: 60px; height: 60px; left: 10%; top: 18%; }
-.pop-decor--b { width: 34px; height: 34px; right: 22%; top: 46%; }
+
+.pop-decor--a {
+  width: 60px;
+  height: 60px;
+  left: 10%;
+  top: 18%;
+}
+
+.pop-decor--b {
+  width: 34px;
+  height: 34px;
+  right: 22%;
+  top: 46%;
+}
 
 .bubble {
   position: absolute;
@@ -1391,12 +1449,10 @@ button.game-card:hover {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: radial-gradient(
-    circle at 32% 28%,
-    var(--bubble-shine) 0%,
-    var(--tint) 46%,
-    color-mix(in srgb, var(--icon) 22%, var(--tint)) 100%
-  );
+  background: radial-gradient(circle at 32% 28%,
+      var(--bubble-shine) 0%,
+      var(--tint) 46%,
+      color-mix(in srgb, var(--icon) 22%, var(--tint)) 100%);
   box-shadow:
     inset -6px -8px 18px color-mix(in srgb, var(--icon) 16%, transparent),
     0 10px 22px rgba(20, 23, 43, 0.12);
@@ -1440,13 +1496,23 @@ button.game-card:hover {
 }
 
 @keyframes bubble-pulse {
-  50% { transform: scale(1.06); }
+  50% {
+    transform: scale(1.06);
+  }
 }
+
 @keyframes bubble-pop {
-  to { transform: scale(1.5); opacity: 0; }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }
+
 @keyframes bubble-fade {
-  to { transform: translateY(-30px); opacity: 0; }
+  to {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
 }
 
 .pop-plus {
@@ -1461,8 +1527,15 @@ button.game-card:hover {
 }
 
 @keyframes plus-rise {
-  from { opacity: 1; transform: translate(-50%, 0); }
-  to { opacity: 0; transform: translate(-50%, -40px); }
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-50%, -40px);
+  }
 }
 
 .squeeze-meter {
@@ -1649,4 +1722,111 @@ button.game-card:hover {
   background: none;
   color: var(--ink-3);
   cursor: pointer;
+}
+
+
+/* ---------- balloon rescue ---------- */
+/* The space scene is deliberately dark in both light and dark mode. */
+.space-area {
+  position: relative;
+  overflow: hidden;
+  height: min(480px, 60svh);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(122, 103, 240, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(18, 179, 165, 0.22), transparent 50%),
+    linear-gradient(180deg, #080a1c 0%, #141a4a 100%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lift);
+}
+
+.space-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.space-chip {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 800;
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+}
+
+.space-meter {
+  position: absolute;
+  right: 14px;
+  top: 16px;
+  bottom: 16px;
+  width: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.space-meter-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  border-radius: 999px;
+  background: linear-gradient(0deg, var(--teal), var(--teal-bright));
+}
+
+.space-meter-brim {
+  position: absolute;
+  right: 30px;
+  top: -2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff;
+  color: #14172b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.space-meter::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 2px;
+  height: 3px;
+  background: #fff;
+  border-radius: 2px;
+}
+
+.space-lives {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  display: flex;
+  gap: 4px;
+  color: #ff8a6b;
+}
+
+.space-lives .is-lost {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.balloon-pad {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.balloon-pad-btn {
+  width: 120px;
+  height: 64px;
 }

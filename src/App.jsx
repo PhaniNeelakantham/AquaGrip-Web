@@ -8,12 +8,14 @@ import GameMenu from "./screens/GameMenu";
 import ProgressTracker from "./screens/ProgressTracker";
 import TiltMaze from "./games/tiltMaze/TiltMaze";
 import SqueezePop from "./games/squeezePop/SqueezePop";
+import BalloonRescue from "./games/balloonRescue/BalloonRescue";
 
 // Memoized so the sensor's ~50 updates per second don't re-render a game;
 // games read live data from `readingRef` inside their own frame loop.
 const GAME_SCREENS = {
   "tilt-maze": memo(TiltMaze),
   "squeeze-pop": memo(SqueezePop),
+  "balloon-rescue": memo(BalloonRescue),
 };
 
 function App() {
