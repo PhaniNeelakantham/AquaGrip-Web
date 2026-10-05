@@ -73,6 +73,34 @@ function SqueezeMeter({ level, target, fillRef }) {
   );
 }
 
+// Live squeeze during the grip check, in psi above the relaxed hand. The
+// scale grows with the best squeeze so the bar stays meaningful whether the
+// player's grip is weak or strong; the line marks the best so far.
+function CalSqueezeMeter({ nowPsi = 0, bestPsi = 0 }) {
+  const scale = Math.max(4, bestPsi * 1.25);
+  const pct = (v) => `${Math.min(1, v / scale) * 100}%`;
+  return (
+    <div className="cal-squeeze">
+      <div className="cal-squeeze-head">
+        <span>Your squeeze</span>
+        <strong>{nowPsi.toFixed(1)} psi</strong>
+      </div>
+      <div
+        className="cal-squeeze-track"
+        role="meter"
+        aria-label="Your squeeze"
+        aria-valuemin={0}
+        aria-valuemax={Math.round(scale)}
+        aria-valuenow={Number(nowPsi.toFixed(1))}
+      >
+        <div className="cal-squeeze-fill" style={{ width: pct(nowPsi) }} />
+        {bestPsi > 0 && <div className="cal-squeeze-best" style={{ left: pct(bestPsi) }} />}
+      </div>
+      <div className="cal-squeeze-best-text">Best: {bestPsi.toFixed(1)} psi</div>
+    </div>
+  );
+}
+
 function HoldButton({ held }) {
   const set = (down) => (e) => {
     e.preventDefault();
@@ -196,6 +224,8 @@ export default function SqueezePop({
           calStep: "squeeze",
           progress: (t - RELAX_SECONDS) / CAL_SQUEEZE_SECONDS,
           felt: peak - rest >= minRange,
+          nowPsi: Math.max(0, psi - rest), // squeeze above the relaxed reading
+          bestPsi: Math.max(0, peak - rest),
         });
       } else {
         if (peak - rest >= minRange) {
@@ -490,8 +520,10 @@ export default function SqueezePop({
               <p className="overlay-note">
                 {view.calStep === "relax"
                   ? "Rest your hand gently on the grip."
-                  : "Keep squeezing until the bar fills. It shouldn't hurt."}
+                  : "Keep squeezing until the time runs out. It shouldn't hurt."}
               </p>
+              {view.calStep === "squeeze" && <CalSqueezeMeter nowPsi={view.nowPsi} bestPsi={view.bestPsi} />}
+              {view.calStep === "squeeze" && <div className="cal-label">Time</div>}
               <div className="cal-bar">
                 <div className="cal-fill" style={{ width: `${Math.min(1, view.progress) * 100}%` }} />
               </div>

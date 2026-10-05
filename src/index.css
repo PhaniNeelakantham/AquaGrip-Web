@@ -1966,3 +1966,67 @@ button.game-card:hover {
   font-size: 13px;
   color: var(--ink-3);
 }
+/* ---------- grip check: live squeeze meter ---------- */
+.cal-squeeze {
+  margin-top: 14px;
+  text-align: left;
+}
+
+.cal-squeeze-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.cal-squeeze-head strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-squeeze-track {
+  position: relative;
+  height: 20px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--gridline);
+}
+
+.cal-squeeze-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--tile-games-from), var(--teal));
+}
+
+.cal-squeeze-best {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+.cal-squeeze-best-text {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.cal-label {
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-3);
+  text-align: left;
+}
+
+.cal-label + .cal-bar {
+  margin-top: 4px;
+}
