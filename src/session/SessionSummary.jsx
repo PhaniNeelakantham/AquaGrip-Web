@@ -34,7 +34,6 @@ export default function SessionSummary({ results, durationMs, sessions, demoMode
           <PartyPopper size={38} aria-hidden="true" />
         </div>
         <h1 className="title">Session complete!</h1>
-        <p className="subtitle">Great work today. Your hand and wrist thank you.</p>
       </section>
 
       <div className="stats summary-stats">
