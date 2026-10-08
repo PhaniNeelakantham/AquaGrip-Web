@@ -5,6 +5,7 @@ import { getCalibration, saveCalibration } from "../../data/gripCalibration";
 import { TARGETS, createRepCounter, stepBubble, toLevel, REP_LOW } from "./logic";
 import { useDevicePause } from "../useDevicePause";
 import ConnectionPause from "../ConnectionPause";
+import ResultActions, { StepTag } from "../ResultActions";
 
 const TOTAL_BUBBLES = 15;
 const RISE_SECONDS = 9;
@@ -130,6 +131,9 @@ export default function SqueezePop({
   demoMode,
   onExit,
   onReconnect,
+  sessionStep = null,
+  sessionGroupId = null,
+  onNext,
 }) {
   const [phase, setPhase] = useState("intro"); // intro | calibrate | playing | done
   const [view, setView] = useState(null);
@@ -257,12 +261,13 @@ export default function SqueezePop({
           avgForcePsi: avg,
           reps: g.reps.count,
           rotationRangeDeg: null,
+          ...(sessionGroupId && { groupId: sessionGroupId }),
         });
       }
       setResult({ popped: g.popped, peak, reps: g.reps.count, saved: !demoMode });
       setPhase("done");
     },
-    [demoMode]
+    [demoMode, sessionGroupId]
   );
 
   // Main game loop.
@@ -407,7 +412,10 @@ export default function SqueezePop({
         <button className="icon-btn" onClick={onExit} aria-label="Leave game">
           <X size={22} aria-hidden="true" />
         </button>
-        <div className="game-bar-title">Squeeze Pop</div>
+        <div className="game-bar-title">
+          Squeeze Pop
+          <StepTag sessionStep={sessionStep} />
+        </div>
         <div className="game-timer" aria-label="Bubbles">
           <CircleDot size={16} aria-hidden="true" />
           {phase === "done" ? TOTAL_BUBBLES : (playing ? view.resolved : 0)} / {TOTAL_BUBBLES}
@@ -571,12 +579,12 @@ export default function SqueezePop({
               <p className="overlay-note">
                 {result.saved ? "Saved to your progress." : "Demo game, not saved to your progress."}
               </p>
-              <button className="btn btn-primary btn-block" onClick={() => begin(false)}>
-                Play again
-              </button>
-              <button className="btn btn-secondary btn-block" onClick={onExit}>
-                Done
-              </button>
+              <ResultActions
+                sessionStep={sessionStep}
+                onNext={() => onNext?.(result)}
+                onPlayAgain={() => begin(false)}
+                onExit={onExit}
+              />
             </div>
           </div>
         )}

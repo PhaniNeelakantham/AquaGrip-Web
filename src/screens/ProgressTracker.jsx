@@ -3,6 +3,7 @@ import { CalendarCheck, Gamepad2, Hand, Info, Repeat, RotateCw, Sparkles, Trendi
 import {
   RANGE_OPTIONS,
   baselineForRange,
+  sessionsInRange,
   improvementScore,
   percentChange,
   summarize,
@@ -60,17 +61,20 @@ export default function ProgressTracker({ sessions, demoMode, onNavigate }) {
   const range = RANGE_OPTIONS.find((r) => r.id === rangeId);
 
   const data = useMemo(() => {
+    // Everything in the range is shown; the score and % changes compare the
+    // range with the one before it (or its own halves when history is short).
+    const inRange = sessionsInRange(sessions, range.days);
     const { current, baseline } = baselineForRange(sessions, range.days);
     const now = summarize(current);
     const before = summarize(baseline);
-    return { current, now, before, score: improvementScore(now, before) };
+    return { inRange, shown: summarize(inRange), now, before, score: improvementScore(now, before) };
   }, [sessions, range.days]);
 
   const band = scoreBand(data.score);
   const compare = comparisonLabel(range);
-  const recent = data.current.slice(-4).reverse();
-  const { avgPeakForce: grip, avgReps: reps, avgRotationRange: wrist } = data.now;
-  const gripPoints = data.current
+  const recent = data.inRange.slice(-4).reverse();
+  const { avgPeakForce: grip, avgReps: reps, avgRotationRange: wrist } = data.shown;
+  const gripPoints = data.inRange
     .filter((s) => Number.isFinite(s.avgForcePsi))
     .map((s) => ({ id: s.id, timestamp: s.timestamp, value: s.avgForcePsi }));
 
@@ -132,7 +136,7 @@ export default function ProgressTracker({ sessions, demoMode, onNavigate }) {
       <h2 className="section-title">Grip strength over time</h2>
       <section className="card">
         <p className="card-sub">Your average squeeze in each session</p>
-        {gripPoints.length === 0 && data.current.length > 0 ? (
+        {gripPoints.length === 0 && data.inRange.length > 0 ? (
           <p className="card-sub">No grip games in this time range yet.</p>
         ) : (
           <LineChart points={gripPoints} valueLabel="Average squeeze" unit="psi" />
@@ -150,14 +154,14 @@ export default function ProgressTracker({ sessions, demoMode, onNavigate }) {
           label="Grip strength"
           value={grip === null ? "—" : grip.toFixed(1)}
           unit={grip === null ? undefined : "psi"}
-          delta={percentChange(grip, data.before.avgPeakForce)}
+          delta={percentChange(data.now.avgPeakForce, data.before.avgPeakForce)}
         />
         <StatTile
           icon={Repeat}
           tint="mint"
           label="Squeezes per session"
           value={reps === null ? "—" : Math.round(reps)}
-          delta={percentChange(reps, data.before.avgReps)}
+          delta={percentChange(data.now.avgReps, data.before.avgReps)}
         />
         <StatTile
           icon={RotateCw}
@@ -165,9 +169,9 @@ export default function ProgressTracker({ sessions, demoMode, onNavigate }) {
           label="Wrist motion"
           value={wrist === null ? "—" : Math.round(wrist)}
           unit={wrist === null ? undefined : "°"}
-          delta={percentChange(wrist, data.before.avgRotationRange)}
+          delta={percentChange(data.now.avgRotationRange, data.before.avgRotationRange)}
         />
-        <StatTile icon={CalendarCheck} tint="peach" label="Sessions" value={data.now.count} />
+        <StatTile icon={CalendarCheck} tint="peach" label="Sessions" value={data.shown.count} />
       </div>
 
       {recent.length > 0 && (

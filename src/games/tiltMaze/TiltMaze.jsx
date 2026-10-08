@@ -6,6 +6,7 @@ import { useElementWidth } from "../../hooks/useElementWidth";
 import { generateMaze, resolveCollisions, wallRects } from "./maze";
 import { useDevicePause } from "../useDevicePause";
 import ConnectionPause from "../ConnectionPause";
+import ResultActions, { StepTag } from "../ResultActions";
 
 const COLS = 6;
 const ROWS = 8;
@@ -98,6 +99,9 @@ export default function TiltMaze({
   demoMode,
   onExit,
   onReconnect,
+  sessionStep = null,
+  sessionGroupId = null,
+  onNext,
 }) {
   const [phase, setPhase] = useState("intro"); // intro | playing | done
   const link = useDevicePause({ active: phase === "playing", demoMode, connectionState, lastDataAtRef });
@@ -243,12 +247,13 @@ export default function TiltMaze({
           avgForcePsi: null,
           reps: null,
           rotationRangeDeg: rangeDeg,
+          ...(sessionGroupId && { groupId: sessionGroupId }),
         });
       }
       setResult({ timeS, rangeDeg, saved: !demoMode });
       setPhase("done");
     },
-    [demoMode]
+    [demoMode, sessionGroupId]
   );
 
   // Game loop.
@@ -346,7 +351,10 @@ export default function TiltMaze({
         <button className="icon-btn" onClick={onExit} aria-label="Leave game">
           <X size={22} aria-hidden="true" />
         </button>
-        <div className="game-bar-title">Tilt Maze</div>
+        <div className="game-bar-title">
+          Tilt Maze
+          <StepTag sessionStep={sessionStep} />
+        </div>
         <div className="game-timer" aria-label="Time">
           <Timer size={16} aria-hidden="true" /> {formatTime(phase === "done" ? result.timeS : elapsed)}
         </div>
@@ -426,12 +434,13 @@ export default function TiltMaze({
               <p className="overlay-note">
                 {result.saved ? "Saved to your progress." : "Demo game, not saved to your progress."}
               </p>
-              <button className="btn btn-primary btn-block" onClick={() => start(true)}>
-                Play a new maze
-              </button>
-              <button className="btn btn-secondary btn-block" onClick={onExit}>
-                Done
-              </button>
+              <ResultActions
+                sessionStep={sessionStep}
+                onNext={() => onNext?.(result)}
+                onPlayAgain={() => start(true)}
+                onExit={onExit}
+                playAgainLabel="Play a new maze"
+              />
             </div>
           </div>
         )}
