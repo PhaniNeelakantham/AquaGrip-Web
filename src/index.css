@@ -2402,3 +2402,17 @@ button.game-card:hover {
   gap: 8px;
   margin-top: 18px;
 }
+
+/* A chart's data line fades in when it changes; axes and grid stay put. */
+.chart-series {
+  animation: chart-series-in 260ms ease-out both;
+}
+
+@keyframes chart-series-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

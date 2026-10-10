@@ -9,12 +9,19 @@ const shortDate = (t) => new Date(t).toLocaleDateString(undefined, { month: "sho
 // Single-series trend (dataviz skill specs): 2px line, ~10% area wash,
 // 8px end dot with a surface ring, sparse direct label, hairline grid,
 // crosshair + tooltip on hover/arrow keys, and a table fallback.
-export default function LineChart({ points, valueLabel, unit = "", valueFormat = (v) => v.toFixed(1) }) {
+// dataKey: which measurement is shown. Changing it keeps the chart (axes stay
+// put), clears the hover, and fades the new line in.
+export default function LineChart({ points, valueLabel, unit = "", valueFormat = (v) => v.toFixed(1), dataKey = "" }) {
   const wrapRef = useRef(null);
   const width = useElementWidth(wrapRef);
   const gradientId = useId();
   const [hoverIndex, setHoverIndex] = useState(null);
   const [showTable, setShowTable] = useState(false);
+  const [shownKey, setShownKey] = useState(dataKey);
+  if (dataKey !== shownKey) {
+    setShownKey(dataKey);
+    setHoverIndex(null);
+  }
 
   const geo = useMemo(() => {
     if (points.length === 0 || width === 0) return null;
@@ -115,7 +122,18 @@ export default function LineChart({ points, valueLabel, unit = "", valueFormat =
               </g>
             ))}
 
-            <path d={geo.area} fill={`url(#${gradientId})`} />
+            {/* Re-created when the measurement changes, so only the data fades in. */}
+            <g key={dataKey} className="chart-series">
+              <path d={geo.area} fill={`url(#${gradientId})`} />
+              <path
+                d={geo.line}
+                fill="none"
+                stroke="var(--teal)"
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            </g>
             {geo.zeroY !== null && (
               <g>
                 <line
@@ -131,14 +149,6 @@ export default function LineChart({ points, valueLabel, unit = "", valueFormat =
                 </text>
               </g>
             )}
-            <path
-              d={geo.line}
-              fill="none"
-              stroke="var(--teal)"
-              strokeWidth={2}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
 
             <text x={PAD.left} y={HEIGHT - 8} fontSize={12} fill="var(--ink-3)">
               {shortDate(geo.scaled[0].timestamp)}
@@ -154,7 +164,7 @@ export default function LineChart({ points, valueLabel, unit = "", valueFormat =
                 <circle cx={hovered.x} cy={hovered.y} r={4} fill="var(--teal)" />
               </>
             ) : (
-              <>
+              <g key={`end-${dataKey}`} className="chart-series">
                 <circle cx={last.x} cy={last.y} r={6} fill="var(--surface)" />
                 <circle cx={last.x} cy={last.y} r={4} fill="var(--teal)" />
                 <text
@@ -170,7 +180,7 @@ export default function LineChart({ points, valueLabel, unit = "", valueFormat =
                 >
                   {valueFormat(last.value)}
                 </text>
-              </>
+              </g>
             )}
           </svg>
         )}

@@ -92,7 +92,7 @@ export default function AdvancedDetails({ inRange, now, before, compare, allSess
               ))}
             </div>
             <LineChart
-              key={chartMetric.key}
+              dataKey={chartMetric.key}
               points={inRange
                 .filter((s) => Number.isFinite(s[chartMetric.key]))
                 .map((s) => ({ id: s.id, timestamp: s.timestamp, value: s[chartMetric.key] }))}
