@@ -23,7 +23,9 @@ export default function LineChart({ points, valueLabel, unit = "", valueFormat =
     const rawMin = Math.min(...values);
     const rawMax = Math.max(...values);
     const spread = rawMax - rawMin || 1;
-    const minY = Math.max(0, rawMin - spread * 0.2);
+    // Don't pad below 0 for all-positive data (e.g. psi), but let the scale go
+    // negative when the data does (e.g. fatigue), so nothing draws off-chart.
+    const minY = rawMin >= 0 ? Math.max(0, rawMin - spread * 0.2) : rawMin - spread * 0.2;
     const maxY = rawMax + spread * 0.2;
     const minT = Math.min(...times);
     const spreadT = Math.max(...times) - minT || 1;
@@ -46,7 +48,10 @@ export default function LineChart({ points, valueLabel, unit = "", valueFormat =
       return { v, y: toY(v) };
     });
 
-    return { scaled, line, area, ticks, baseY };
+    // A visible 0 line when the data crosses zero (e.g. fatigue: below = weaker).
+    const zeroY = minY < 0 && maxY > 0 ? toY(0) : null;
+
+    return { scaled, line, area, ticks, baseY, zeroY };
   }, [points, width]);
 
   const pickNearest = (clientX) => {
@@ -111,6 +116,21 @@ export default function LineChart({ points, valueLabel, unit = "", valueFormat =
             ))}
 
             <path d={geo.area} fill={`url(#${gradientId})`} />
+            {geo.zeroY !== null && (
+              <g>
+                <line
+                  x1={PAD.left}
+                  x2={width - PAD.right}
+                  y1={geo.zeroY}
+                  y2={geo.zeroY}
+                  stroke="var(--axis)"
+                  strokeWidth={1.5}
+                />
+                <text x={PAD.left - 8} y={geo.zeroY + 4} textAnchor="end" fontSize={12} fill="var(--ink-2)">
+                  0
+                </text>
+              </g>
+            )}
             <path
               d={geo.line}
               fill="none"
