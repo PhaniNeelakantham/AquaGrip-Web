@@ -2250,3 +2250,155 @@ button.game-card:hover {
   text-align: center;
   margin-bottom: 14px;
 }
+
+/* ---------- progress: advanced details ---------- */
+.adv-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  min-height: 50px;
+  border: 1px dashed var(--axis);
+  border-radius: 16px;
+  background: var(--surface);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-text);
+  cursor: pointer;
+}
+
+.adv-chevron {
+  transition: transform 200ms ease;
+}
+
+.adv-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.adv {
+  margin-top: 14px;
+  animation: screen-in 260ms ease-out both;
+}
+
+.adv-note {
+  font-size: 14px;
+  color: var(--ink-2);
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.adv-note--small {
+  margin-top: 8px;
+  padding: 0 4px;
+  background: none;
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.adv-group {
+  margin: 20px 2px 10px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.adv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.adv-tile {
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.adv-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.adv-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+  line-height: 1.25;
+}
+
+.adv-info {
+  width: 30px;
+  height: 30px;
+  margin: -6px -6px 0 0;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.adv-info[aria-expanded="true"] {
+  color: var(--primary-text);
+  background: var(--surface-2);
+}
+
+.adv-value {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.adv-words {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.adv-explain {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.chip-btn {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.chip-btn[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: transparent;
+}
+
+.adv-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}

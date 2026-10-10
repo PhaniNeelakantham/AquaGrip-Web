@@ -6,6 +6,8 @@ import { TARGETS, createRepCounter, stepBubble, toLevel, REP_LOW } from "./logic
 import { useDevicePause } from "../useDevicePause";
 import ConnectionPause from "../ConnectionPause";
 import ResultActions, { StepTag } from "../ResultActions";
+import { createGripTracker, createTremorTracker, fatiguePct } from "../metrics";
+import { toAngles } from "../../ble/orientation";
 
 const TOTAL_BUBBLES = 15;
 const RISE_SECONDS = 9;
@@ -252,6 +254,13 @@ export default function SqueezePop({
     (g) => {
       const peak = Number(g.peak.toFixed(2));
       const avg = g.squeezeFrames ? Number((g.squeezeSum / g.squeezeFrames).toFixed(2)) : 0;
+      const ttt = g.timesToTarget;
+      const advanced = {
+        ...g.grip.result(),
+        ...g.tremor.result(),
+        timeToTargetS: ttt.length ? Number((ttt.reduce((a, v) => a + v, 0) / ttt.length).toFixed(2)) : null,
+        fatiguePct: fatiguePct(g.popPeaks),
+      };
       if (!demoMode) {
         addSession({
           game: "squeeze-pop",
@@ -261,6 +270,7 @@ export default function SqueezePop({
           avgForcePsi: avg,
           reps: g.reps.count,
           rotationRangeDeg: null,
+          ...advanced,
           ...(sessionGroupId && { groupId: sessionGroupId }),
         });
       }
@@ -289,6 +299,13 @@ export default function SqueezePop({
       squeezeSum: 0,
       squeezeFrames: 0,
       reps: createRepCounter(),
+      // advanced measurements (Progress -> Advanced details)
+      grip: createGripTracker(),
+      tremor: createTremorTracker(),
+      lastSample: null,
+      lastSampleAt: 0,
+      popPeaks: [],
+      timesToTarget: [],
     };
     let raf;
     let last = performance.now();
@@ -311,6 +328,17 @@ export default function SqueezePop({
         g.squeezeFrames++;
       }
       g.reps.update(level);
+      g.grip.update(level, dt);
+      if (!demoMode) {
+        // Wrist steadiness from each new sensor reading (not each screen frame).
+        const r = reading.current;
+        if (r !== g.lastSample) {
+          const at = lastDataAtRef.current;
+          if (g.lastSample) g.tremor.add(toAngles(r), (at - g.lastSampleAt) / 1000);
+          g.lastSample = r;
+          g.lastSampleAt = at;
+        }
+      }
       g.effects = g.effects.filter((e) => now - e.at < 600);
 
       if (g.finishing !== null) {
@@ -322,7 +350,13 @@ export default function SqueezePop({
       } else if (g.resting > 0) {
         g.resting = Math.max(0, g.resting - dt);
       } else if (g.bubble) {
-        const outcome = stepBubble(g.bubble, level, dt, RISE_SECONDS);
+        const b = g.bubble;
+        if (!b.charged && b.riseAt === undefined && level > REP_LOW) b.riseAt = g.elapsed;
+        b.peak = Math.max(b.peak ?? 0, level);
+        const wasCharged = b.charged;
+        const outcome = stepBubble(b, level, dt, RISE_SECONDS);
+        if (!wasCharged && b.charged && b.riseAt !== undefined) g.timesToTarget.push(g.elapsed - b.riseAt);
+        if (outcome === "popped") g.popPeaks.push(b.peak);
         if (outcome) {
           g.effects.push({ ...g.bubble, kind: outcome, at: now });
           g.bubble = null;
@@ -383,7 +417,7 @@ export default function SqueezePop({
     let lastSignature = null;
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [phase, readPsi, demoMode, finish, link.pausedRef]);
+  }, [phase, readPsi, demoMode, finish, link.pausedRef, reading, lastDataAtRef]);
 
   const begin = (forceCalibrate) => {
     held.current = false;

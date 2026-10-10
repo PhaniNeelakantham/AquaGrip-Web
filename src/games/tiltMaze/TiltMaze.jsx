@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Compass, PartyPopper, RotateCw, Timer, X } from "lucide-react";
 import { angleDelta, toAngles } from "../../ble/orientation";
+import { createTremorTracker } from "../metrics";
 import { addSession } from "../../data/sessionStore";
 import { useElementWidth } from "../../hooks/useElementWidth";
 import { generateMaze, resolveCollisions, wallRects } from "./maze";
@@ -121,6 +122,7 @@ export default function TiltMaze({
   const keyTilt = useRef({ x: 0, y: 0 });
   const center = useRef({ pitch: 0, roll: 0, yaw: 0 });
   const range = useRef({ minX: 0, maxX: 0, minY: 0, maxY: 0 });
+  const tremor = useRef({ tracker: createTremorTracker(), last: null, lastAt: 0 });
   const colors = useRef(null);
 
   const connected = connectionState === "connected";
@@ -247,6 +249,10 @@ export default function TiltMaze({
           avgForcePsi: null,
           reps: null,
           rotationRangeDeg: rangeDeg,
+          // advanced: range per direction + wrist steadiness (X = palm turn, Y = tilt; see AXIS_MAP)
+          rollRangeDeg: Math.round(rg.maxX - rg.minX),
+          pitchRangeDeg: Math.round(rg.maxY - rg.minY),
+          ...tremor.current.tracker.result(),
           ...(sessionGroupId && { groupId: sessionGroupId }),
         });
       }
@@ -291,6 +297,17 @@ export default function TiltMaze({
       seconds += dt;
 
       const tilt = readTilt(dt);
+      if (!demoMode) {
+        // Wrist steadiness from each new sensor reading (not each screen frame).
+        const tr = tremor.current;
+        const r = reading.current;
+        if (r !== tr.last) {
+          const at = lastDataAtRef.current;
+          if (tr.last) tr.tracker.add(toAngles(r), (at - tr.lastAt) / 1000);
+          tr.last = r;
+          tr.lastAt = at;
+        }
+      }
       const rg = range.current;
       rg.minX = Math.min(rg.minX, tilt.x);
       rg.maxX = Math.max(rg.maxX, tilt.x);
@@ -323,7 +340,7 @@ export default function TiltMaze({
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [phase, demoMode, reading, rects, draw, finish, link.pausedRef]);
+  }, [phase, demoMode, reading, lastDataAtRef, rects, draw, finish, link.pausedRef]);
 
   // After a reconnect the hand may have moved, so "level" is wherever it is now.
   const resumeAfterReconnect = () => {
@@ -339,6 +356,7 @@ export default function TiltMaze({
     keyTilt.current = { x: 0, y: 0 };
     held.current.clear();
     range.current = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+    tremor.current = { tracker: createTremorTracker(), last: null, lastAt: 0 };
     if (!demoMode) center.current = toAngles(reading.current);
     setElapsed(0);
     setResult(null);

@@ -47,7 +47,7 @@ function average(values) {
 
 // Averages only the sessions that recorded this metric (a wrist-only game
 // has no grip numbers); null when none did.
-function averageOf(sessions, key) {
+export function averageOf(sessions, key) {
   const values = sessions.map((s) => s[key]).filter(Number.isFinite);
   return values.length ? average(values) : null;
 }
